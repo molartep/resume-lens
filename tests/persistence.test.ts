@@ -1,0 +1,15 @@
+import {beforeAll,afterAll,it,expect} from 'vitest';
+import {PrismaClient} from '@prisma/client';
+import {mkdtemp,readFile,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import path from 'node:path';
+import {candidateRepository} from '../server/repositories/candidateRepository';
+import {analysisRepository,type SaveAnalysis} from '../server/repositories/analysisRepository';
+import type {Screening} from '../shared/types';
+let dir:string;let db:PrismaClient;
+beforeAll(async()=>{dir=await mkdtemp(path.join(tmpdir(),'resume-lens-test-'));db=new PrismaClient({datasourceUrl:`file:${dir}/test.db`});for(const migration of ['20261004000000_init','20261004010000_resume_pdf','20261004020000_saved_resumes']){const sql=await readFile(`prisma/migrations/${migration}/migration.sql`,'utf8');for(const statement of sql.split(';').map(s=>s.trim()).filter(Boolean))await db.$executeRawUnsafe(statement);}});
+afterAll(async()=>{await db?.$disconnect();if(dir)await rm(dir,{recursive:true,force:true});});
+const input:SaveAnalysis={name:'Demo Person',resumeFilename:'demo.pdf',parsedResume:{text:'# Experience\nBuilt API',metadata:{jobId:'job',pageCount:1,provider:'test'}},evidence:'Built API',screening:{model:'test',answers:{mentor:{type:'noul',noul:.7}}} as Screening,config:{mentor:{label:'Mentor',order:1,type:'noul',instructions:'Mentoring?'}},latencyMs:12};
+it('persists candidates and JSON analysis snapshots in real SQLite',async()=>{const repo=analysisRepository(db);const result=await repo.save(input);expect(result.candidate.name).toBe('Demo Person');expect(result.analysis.candidateId).toBe(result.candidate.id);expect(result.analysis.screeningConfigSnapshot).toEqual(input.config);expect(result.analysis.screeningResults).toEqual(input.screening);expect(result.analysis.parsedResumeText).toBe(input.parsedResume.text);expect(await candidateRepository(db).find(result.candidate.id)).not.toBeNull();});
+it('adds history to explicit candidate and retains past configuration',async()=>{const repo=analysisRepository(db);const first=await repo.save(input);await repo.save({...input,candidateId:first.candidate.id,config:{mentor:{...input.config.mentor,label:'Updated label'}}});const history=await repo.list(first.candidate.id);expect(history).toHaveLength(2);expect(history.map(x=>(x.screeningConfigSnapshot as typeof input.config).mentor.label)).toContain('Mentor');});
+it('rolls back when candidate update cannot succeed',async()=>{const before=await db.resumeAnalysis.count();await expect(analysisRepository(db).save({...input,candidateId:'missing'})).rejects.toThrow();expect(await db.resumeAnalysis.count()).toBe(before);});

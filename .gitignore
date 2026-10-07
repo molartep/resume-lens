@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+*.log
+prisma/*.db*
+coverage/
+.DS_Store
+config/runtime.settings.json
+config/runtime.settings.json.*.tmp
+
+storage/

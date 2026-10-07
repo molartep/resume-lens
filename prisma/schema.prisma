@@ -1,0 +1,45 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "sqlite"
+  url = env("DATABASE_URL")
+}
+model Candidate {
+  id String @id @default(uuid())
+  name String?
+  email String?
+  phone String?
+  resumeFilename String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  analyses ResumeAnalysis[]
+}
+model ResumeAnalysis {
+  id String @id @default(uuid())
+  candidateId String
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  resumeDocumentId String?
+  resumeDocument ResumeDocument? @relation(fields: [resumeDocumentId], references: [id], onDelete: SetNull)
+  resumeFilename String?
+  resumePdfKey String?
+  parsedResumeText String
+  screeningResumeText String
+  screeningResults Json
+  screeningConfigSnapshot Json
+  analyzedAt DateTime @default(now())
+  deciderLatencyMs Float?
+  parserMetadata Json?
+  @@index([candidateId, analyzedAt])
+  @@index([resumeDocumentId])
+}
+
+model ResumeDocument {
+  id String @id @default(uuid())
+  filename String
+  pdfKey String @unique
+  parsedResumeText String
+  parserMetadata Json?
+  createdAt DateTime @default(now())
+  analyses ResumeAnalysis[]
+}
