@@ -1,5 +1,5 @@
 import {randomUUID} from 'node:crypto';
-import {mkdir,writeFile,copyFile,unlink,readdir,stat} from 'node:fs/promises';
+import {mkdir,writeFile,copyFile,unlink,readdir,stat,link} from 'node:fs/promises';
 import {constants} from 'node:fs';
 import path from 'node:path';
 import {AppError} from './errors';
@@ -9,6 +9,12 @@ export function resumeFileStore(root=path.resolve('storage/resumes')){
  function filename(key:string,draft=false){if(!/^[0-9a-f-]{36}\.pdf$/.test(key))throw new AppError(404,'PDF_NOT_FOUND','Resume PDF not found.');return path.join(draft?drafts:root,key);}
  async function remove(file:string){try{await unlink(file);}catch(error){if((error as NodeJS.ErrnoException).code!=='ENOENT')throw error;}}
  return {
+  async persist(key:string,pdf:Buffer){
+   await mkdir(root,{recursive:true,mode:0o700});
+   const target=filename(key);const temporary=path.join(root,`.${randomUUID()}.tmp`);
+   try{await writeFile(temporary,pdf,{mode:0o600,flag:'wx'});try{await link(temporary,target);}catch(error){if((error as NodeJS.ErrnoException).code!=='EEXIST')throw error;}}
+   finally{await remove(temporary);}
+  },
   async stage(pdf:Buffer){const key=`${randomUUID()}.pdf`;try{await mkdir(drafts,{recursive:true,mode:0o700});await writeFile(filename(key,true),pdf,{mode:0o600,flag:'wx'});return key;}catch{await remove(filename(key,true)).catch(()=>{});throw new AppError(500,'PDF_STORAGE_ERROR','The uploaded PDF could not be stored locally. Check the storage folder permissions and available disk space.');}},
   async retain(key:string){try{await copyFile(filename(key,true),filename(key),constants.COPYFILE_EXCL);}catch{throw new AppError(500,'PDF_STORAGE_ERROR','The resume PDF could not be saved locally. Check the storage folder permissions and available disk space.');}},
   discardDraft:(key:string)=>remove(filename(key,true)),

@@ -7,5 +7,5 @@ export function resumeRepository(db:PrismaClient){return {
   return documents.map(({analyses,createdAt,...document})=>({...document,createdAt:createdAt.toISOString(),candidate:analyses[0]?.candidate||null}));
  },
  find:(id:string)=>db.resumeDocument.findUnique({where:{id},include:{analyses:{orderBy:{analyzedAt:'desc'},take:1,select:{screeningResumeText:true,candidate:{select:candidateFields}}}}}),
- create:({filename,pdfKey,parsedResume}:{filename:string;pdfKey:string;parsedResume:ParsedResume})=>db.resumeDocument.create({data:{filename,pdfKey,parsedResumeText:parsedResume.text,parserMetadata:JSON.parse(JSON.stringify(parsedResume.metadata)) as Prisma.InputJsonValue}})
+ create:({id,filename,pdfKey,parsedResume}:{id?:string;filename:string;pdfKey:string;parsedResume:ParsedResume})=>db.resumeDocument.upsert({where:{pdfKey},update:{},create:{id,filename,pdfKey,parsedResumeText:parsedResume.text,parserMetadata:JSON.parse(JSON.stringify(parsedResume.metadata)) as Prisma.InputJsonValue}})
 };}

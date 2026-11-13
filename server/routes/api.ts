@@ -1,3 +1,4 @@
+import type {JobService} from '../services/jobService';
 import type {resumeRepository} from '../repositories/resumeRepository';
 import type {ResumeFileStore} from '../services/resumeFileService';
 import { Router } from 'express';
@@ -13,7 +14,7 @@ import { normalizeResume,suggestProfessionalEvidence,assertProfessionalEvidence 
 import type { ParsedResume, Screening, ScreeningConfig } from '../../shared/types';
 import type { candidateRepository } from '../repositories/candidateRepository';
 import type { analysisRepository } from '../repositories/analysisRepository';
-export type Dependencies={candidates:ReturnType<typeof candidateRepository>;analyses:Pick<ReturnType<typeof analysisRepository>,'list'|'save'> & Partial<Pick<ReturnType<typeof analysisRepository>,'find'>>;pdfs?:ResumeFileStore;resumes?:ReturnType<typeof resumeRepository>;settings?:SettingsStore;parse:(pdf:Buffer,settings?:RuntimeSettings)=>Promise<ParsedResume>;decide:(text:string,config:ScreeningConfig,settings?:RuntimeSettings)=>Promise<{screening:Screening;latencyMs:number}>;parserConfigured:()=>boolean;health:(settings?:RuntimeSettings)=>Promise<{online:boolean;model?:string}>};
+export type Dependencies={jobs?:JobService;candidates:ReturnType<typeof candidateRepository>;analyses:Pick<ReturnType<typeof analysisRepository>,'list'|'save'> & Partial<Pick<ReturnType<typeof analysisRepository>,'find'>>;pdfs?:ResumeFileStore;resumes?:ReturnType<typeof resumeRepository>;settings?:SettingsStore;parse:(pdf:Buffer,settings?:RuntimeSettings)=>Promise<ParsedResume>;decide:(text:string,config:ScreeningConfig,settings?:RuntimeSettings)=>Promise<{screening:Screening;latencyMs:number}>;parserConfigured:()=>boolean;health:(settings?:RuntimeSettings)=>Promise<{online:boolean;model?:string}>};
 export function apiRouter(deps:Dependencies){
  const router=Router();
  let inMemorySettings=defaultSettings();
@@ -26,6 +27,9 @@ export function apiRouter(deps:Dependencies){
   if(file.mimetype!=='application/pdf'||!file.originalname.toLowerCase().endsWith('.pdf'))return cb(new AppError(400,'INVALID_PDF','Upload a PDF file with a .pdf extension.'));
   cb(null,true);
  }});
+ router.get('/jobs',(_req,res)=>res.json(deps.jobs?.queue.list()||[]));
+ router.get('/jobs/:id',(req,res)=>{if(!deps.jobs)throw new AppError(404,'JOB_NOT_FOUND','Job not found.');res.json(deps.jobs.queue.get(String(req.params.id)));});
+ router.post('/jobs/:id/retry',(req,res)=>{if(!deps.jobs)throw new AppError(404,'JOB_NOT_FOUND','Job not found.');res.status(202).json(deps.jobs.queue.retry(String(req.params.id)));});
  router.get('/health',async(_req,res)=>{
   let config=true;let settings:RuntimeSettings|undefined;try{settings=await store.get();}catch{config=false;}
   const [decider,database]=await Promise.all([deps.health(settings),deps.candidates.health().then(()=>true).catch(()=>false)]);
@@ -52,16 +56,32 @@ export function apiRouter(deps:Dependencies){
   if(!z.string().uuid().safeParse(req.params.id).success)throw new AppError(404,'RESUME_NOT_FOUND','Saved resume not found.');
   busy=true;
   try{
-   const settings=await store.get();if(pending.size>=settings.workflow.maxPendingDrafts)throw new AppError(429,'DRAFT_LIMIT','Too many pending drafts. Complete an analysis or wait for the drafts to expire.');
+   const settings=await store.get();if((deps.jobs?deps.jobs.queue.draftCount()+deps.jobs.queue.pendingParses():pending.size)>=settings.workflow.maxPendingDrafts)throw new AppError(429,'DRAFT_LIMIT','Too many pending drafts. Complete an analysis or wait for the drafts to expire.');
    const document=await deps.resumes?.find(String(req.params.id));if(!document||!deps.pdfs)throw new AppError(404,'RESUME_NOT_FOUND','Saved resume not found.');
    await deps.pdfs.storedPath(document.pdfKey);
    const text=normalizeResume(document.parsedResumeText);if(!text)throw new AppError(422,'EMPTY_RESUME','This saved resume has no parsed text. Upload the PDF again.');
    const parsed:ParsedResume={text,metadata:document.parserMetadata as unknown as ParsedResume['metadata']||{provider:'Saved extraction (metadata unavailable)',jobId:'',pageCount:0}};
    const previous=document.analyses[0];const token=randomUUID();pending.set(token,{parsed,filename:document.filename,pdfKey:document.pdfKey,resumeId:document.id,expires:Date.now()+settings.workflow.draftExpiryMinutes*60*1000});
+   deps.jobs?.queue.saveDraft(token,{parsed,filename:document.filename,pdfKey:document.pdfKey,resumeId:document.id,expires:Date.now()+settings.workflow.draftExpiryMinutes*60*1000},Date.now()+settings.workflow.draftExpiryMinutes*60*1000);
    res.json({token,filename:document.filename,resumeId:document.id,parsedResume:parsed,suggestedEvidence:suggestProfessionalEvidence(text),candidate:previous?.candidate||null,expiresInMinutes:settings.workflow.draftExpiryMinutes});
   }finally{busy=false;}
  });
  router.post('/resumes/parse',async(req,res)=>{
+  if(deps.jobs){
+   const settings=await store.get();
+   const key=req.get('Idempotency-Key');
+   if(key&&!/^[a-zA-Z0-9_-]{1,120}$/.test(key))throw new AppError(400,'INVALID_JOB_KEY','Use an idempotency key of 1–120 letters, numbers, underscores or hyphens.');
+   await new Promise<void>((resolve,reject)=>upload(settings).single('resume')(req,res,error=>error?reject(error):resolve()));
+   try{
+    const file=req.file;
+    if(!file?.buffer.length)throw new AppError(400,'EMPTY_PDF','Choose a non-empty PDF.');
+    if(file.buffer.subarray(0,5).toString()!=='%PDF-')throw new AppError(400,'INVALID_PDF','This file does not contain a valid PDF header.');
+    const filename=file.originalname.replace(/^.*[\\/]/,'').replace(/[^a-zA-Z0-9._ -]/g,'_').slice(0,160)||'resume.pdf';
+    const job=deps.jobs.parse(file.buffer,filename,settings,key);
+    res.status(202).location(`/api/jobs/${job.id}`).json(job);
+   }finally{if(req.file)req.file.buffer=Buffer.alloc(0);}
+   return;
+  }
   cleanup();if(busy)throw new AppError(409,'BUSY','Another resume is processing. Please wait.');
   busy=true;
   try{
@@ -90,6 +110,14 @@ export function apiRouter(deps:Dependencies){
  router.post('/resumes/analyze',async(req,res)=>{
   if(typeof req.body?.name!=='string'||!req.body.name.trim()||req.body.name.trim().length>120)throw new AppError(400,'DISPLAY_NAME_REQUIRED','Enter a candidate display name between 1 and 120 characters.');
   const body=analysisBody.safeParse(req.body);if(!body.success)throw new AppError(400,'REVIEW_REQUIRED','Review professional evidence (20–30,000 characters) and confirm that personal and sensitive information is removed.');
+  if(deps.jobs){
+   try{assertProfessionalEvidence(body.data.evidence);}catch(error){throw new AppError(400,'PERSONAL_INFORMATION',(error as Error).message);}
+   if(body.data.candidateId&&!await deps.candidates.find(body.data.candidateId))throw new AppError(404,'NOT_FOUND','Candidate not found.');
+   const settings=await store.get();
+   const config=resolveConfig(validateConfig(settings.screeningConfig),new Date(),settings.workflow.timezone);
+   const job=deps.jobs.analyze(body.data,settings,config);
+   res.status(202).location(`/api/jobs/${job.id}`).json(job);return;
+  }
   cleanup();const draft=pending.get(body.data.token);if(!draft)throw new AppError(410,'DRAFT_EXPIRED','This resume draft expired. Upload the PDF again.');
   if(busy)throw new AppError(409,'BUSY','Another resume is processing. Please wait.');
   try{assertProfessionalEvidence(body.data.evidence);}catch(error){throw new AppError(400,'PERSONAL_INFORMATION',(error as Error).message);}
