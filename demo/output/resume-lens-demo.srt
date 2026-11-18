@@ -1,0 +1,31 @@
+1
+00:00:00,000 --> 00:00:05,000
+Meet Resume Lens: a clearer view of experience, built for human review.
+
+2
+00:00:05,000 --> 00:00:11,000
+Upload a resume. The application extracts its text and saves a reusable local copy.
+
+3
+00:00:11,000 --> 00:00:21,000
+Review the professional evidence before analysis. Remove personal details, check the extraction, and confirm what will be sent to the model.
+
+4
+00:00:21,000 --> 00:00:28,000
+A persistent job tracks progress. Reload the page, and the application reconnects to the same analysis.
+
+5
+00:00:28,000 --> 00:00:38,000
+Explore separate screening dimensions, with distributions and clear context. These illustrative probabilities are model outputs, not verified facts or an overall candidate score.
+
+6
+00:00:38,000 --> 00:00:45,000
+Return to the original PDF and the exact reviewed evidence. Keep the source close to every interpretation.
+
+7
+00:00:45,000 --> 00:00:55,000
+Revisit saved candidates and their history. Configure questions, rubrics, and manual review thresholds for your workspace.
+
+8
+00:00:55,000 --> 00:01:00,000
+Clearer evidence. Better human review. This demo uses fictional data and simulated services.

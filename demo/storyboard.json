@@ -1,0 +1,10 @@
+[
+ {"start":0,"end":5,"title":"EVIDENCE FIRST. HUMAN JUDGMENT.","voice":"Meet Resume Lens: a clearer view of experience, built for human review."},
+ {"start":5,"end":11,"title":"01 / UPLOAD A RESUME","voice":"Upload a resume. The application extracts its text and saves a reusable local copy."},
+ {"start":11,"end":21,"title":"02 / REVIEW THE EVIDENCE","voice":"Review the professional evidence before analysis. Remove personal details, check the extraction, and confirm what will be sent to the model."},
+ {"start":21,"end":28,"title":"03 / PERSISTENT JOBS","voice":"A persistent job tracks progress. Reload the page, and the application reconnects to the same analysis."},
+ {"start":28,"end":38,"title":"04 / SEPARATE DIMENSIONS","voice":"Explore separate screening dimensions, with distributions and clear context. These illustrative probabilities are model outputs, not verified facts or an overall candidate score."},
+ {"start":38,"end":45,"title":"05 / RETURN TO THE SOURCE","voice":"Return to the original PDF and the exact reviewed evidence. Keep the source close to every interpretation."},
+ {"start":45,"end":55,"title":"06 / SAVE CONTEXT. CONFIGURE REVIEW.","voice":"Revisit saved candidates and their history. Configure questions, rubrics, and manual review thresholds for your workspace."},
+ {"start":55,"end":60,"title":"RESUME LENS","voice":"Clearer evidence. Better human review. This demo uses fictional data and simulated services."}
+]

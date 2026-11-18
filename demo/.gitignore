@@ -1,0 +1,11 @@
+output/frames/
+output/raw/
+output/session.json
+output/recording.json
+output/0*.png
+assets/*.aiff
+assets/*.wav
+assets/*.txt
+assets/*.ffscript
+assets/resume-preview.png
+output/contact-sheet.png

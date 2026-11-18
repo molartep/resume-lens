@@ -1,0 +1,53 @@
+import {createRequire} from 'node:module';
+import {writeFile,mkdir} from 'node:fs/promises';
+import path from 'node:path';
+// Override PLAYWRIGHT_MODULE when using a separate Playwright installation.
+const require=createRequire(import.meta.url);
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
+await mkdir('demo/output/raw',{recursive:true});
+const browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_EXECUTABLE?{executablePath:process.env.CHROMIUM_EXECUTABLE}:{})});
+const context=await browser.newContext({viewport:{width:1440,height:820},deviceScaleFactor:1,reducedMotion:'reduce'});
+const page=await context.newPage();const errors=[];page.on('pageerror',error=>errors.push(error.message));
+const started=Date.now();
+const frames=[];const pending=[];let count=0;
+await mkdir('demo/output/frames',{recursive:true});
+const cdp=await context.newCDPSession(page);
+cdp.on('Page.screencastFrame',event=>{const file=`demo/output/frames/${String(count++).padStart(5,'0')}.jpg`;frames.push({file,time:(Date.now()-started)/1000});pending.push(writeFile(file,Buffer.from(event.data,'base64')));void cdp.send('Page.screencastFrameAck',{sessionId:event.sessionId}).catch(()=>{});});
+await cdp.send('Page.startScreencast',{format:'jpeg',quality:90,maxWidth:1440,maxHeight:820,everyNthFrame:1});
+const until=async second=>{const remaining=second*1000-(Date.now()-started);if(remaining>0)await page.waitForTimeout(remaining);};
+const snap=async name=>page.screenshot({path:`demo/output/${name}.png`});
+try{
+ await page.goto('http://127.0.0.1:4317');
+ await page.getByRole('heading',{name:'A clearer view of experience.'}).waitFor();
+ await until(5);await snap('01-workspace');
+ await page.locator('input[type=file]').setInputFiles(path.resolve('demo/assets/synthetic-resume.pdf'));
+ await until(8);await snap('02-progress');
+ await page.getByRole('heading',{name:'Review professional evidence'}).waitFor();
+ await until(11);await page.getByRole('textbox',{name:/Candidate display name/}).fill('Alex Morgan · Synthetic demo');
+ await page.locator('.review-card').scrollIntoViewIfNeeded();
+ await until(14);await snap('03-review');
+ await until(18);await page.getByRole('checkbox',{name:/I reviewed this text/}).check();
+ await page.getByRole('button',{name:'Analyze Candidate →'}).hover();
+ await until(21);await page.getByRole('button',{name:'Analyze Candidate →'}).click();
+ await until(23);await page.reload();
+ await page.getByRole('heading',{name:'Alex Morgan · Synthetic demo'}).waitFor({timeout:15000});
+ await page.evaluate(()=>window.scrollTo({top:0,behavior:'smooth'}));
+ await until(28);await snap('04-results');
+ await until(32);await page.evaluate(()=>window.scrollTo({top:540,behavior:'smooth'}));
+ await until(35);await snap('05-dimensions');
+ await until(38);await page.evaluate(()=>document.getElementById('evidence').scrollIntoView({behavior:'smooth'}));
+ await page.locator('.pdf-page canvas').waitFor({state:'visible',timeout:10000});
+ await until(41);await snap('06-evidence');
+ await until(45);await page.getByRole('button',{name:/Candidates/}).first().click();
+ await page.getByRole('button',{name:/Alex Morgan/}).first().waitFor();
+ await page.evaluate(()=>window.scrollTo({top:0,behavior:'smooth'}));
+ await until(47);await snap('07-history');
+ await until(49);await page.getByRole('button',{name:/Alex Morgan/}).first().click();
+ await until(51);await page.getByRole('button',{name:/Screening Dimensions/}).click();
+ await page.evaluate(()=>window.scrollTo({top:0,behavior:'smooth'}));
+ await until(53);await snap('08-config');
+ await until(60.5);
+}finally{
+ await cdp.send('Page.stopScreencast');await Promise.all(pending);await writeFile('demo/output/recording.json',JSON.stringify({frames,elapsedSeconds:(Date.now()-started)/1000,errors},null,2));await context.close();await browser.close();
+}
+if(errors.length)throw new Error(errors.join('\n'));

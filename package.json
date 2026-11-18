@@ -14,7 +14,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "check:decider": "tsx scripts/check-decider.ts",
-    "postinstall": "node scripts/prepare-db.mjs && prisma generate"
+    "postinstall": "node scripts/prepare-db.mjs && prisma generate",
+    "evaluate": "node --import tsx scripts/evaluate.ts"
   },
   "dependencies": {
     "@prisma/client": "6.12.0",

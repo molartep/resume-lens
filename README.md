@@ -184,3 +184,9 @@ Each dimension can enable its own manual-review threshold. Select a metric, belo
 Candidate analysis cards show a red **Manual review needed** warning when the applicable threshold is violated. The warning shows the actual value, threshold and source as application interpretation. It never changes the raw model output, hides distributions, assigns an overall score or makes an employment decision. Threshold configuration is saved with every new analysis and is never sent to Decider.
 
 For previously saved analyses, current thresholds apply immediately only when internal ID, type, instructions and criteria match the saved model-facing definition (with CURRENT_DATE resolution allowed). Label/order changes do not change the rubric. Otherwise, the threshold stored in that analysis is used. Cards identify the source. Older analyses without a compatible current rule or saved threshold have no automatic flag. Editing questions or criteria therefore cannot silently reinterpret a historical result against a different rubric.
+
+## Synthetic evaluation and demo
+
+Run `npm run evaluate` to evaluate the 12-case synthetic dataset against the separately managed local Decider. The report separates live measurements from deterministic validator checks and keeps live metrics unavailable when the service is offline. See [evaluation methodology](evaluations/README.md) and [latest findings](evaluations/results/latest.md).
+
+The [one-minute demo](demo/output/resume-lens-demo.mp4) shows the real application with fictional resumes and explicitly simulated provider responses. See [recording and reproduction notes](demo/README.md). The demo uses a separate temporary database and never reads candidate records from the normal workspace.

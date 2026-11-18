@@ -1,0 +1,32 @@
+// Isolated demo: real HTTP/UI/SQLite job flow; authored provider fixtures only.
+import {mkdtemp,readFile,writeFile,mkdir} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import path from 'node:path';
+import {PrismaClient} from '@prisma/client';
+import {createApp} from '../server/app';
+import {JobQueue} from '../server/repositories/jobQueue';
+import {jobService} from '../server/services/jobService';
+import {resumeRepository} from '../server/repositories/resumeRepository';
+import {analysisRepository} from '../server/repositories/analysisRepository';
+import {candidateRepository} from '../server/repositories/candidateRepository';
+import {settingsRepository} from '../server/repositories/settingsRepository';
+import {resumeFileStore} from '../server/services/resumeFileService';
+import {defaultSettings} from '../server/services/settingsService';
+import {parseDeciderResponse} from '../server/services/deciderService';
+import type {Dependencies} from '../server/routes/api';
+import {fixture,type Case} from '../evaluations/metrics';
+const root=await mkdtemp(path.join(tmpdir(),'resume-lens-demo-'));
+const db=new PrismaClient({datasourceUrl:`file:${root}/demo.db`});
+for(const folder of ['20261004000000_init','20261004010000_resume_pdf','20261004020000_saved_resumes']){const sql=await readFile(`prisma/migrations/${folder}/migration.sql`,'utf8');for(const statement of sql.split(';').map(s=>s.trim()).filter(Boolean))await db.$executeRawUnsafe(statement);}
+const dataset=JSON.parse(await readFile('evaluations/dataset.json','utf8')).cases as Case[];
+const source=dataset.find(c=>c.id==='clear-backend')!;
+const settings=defaultSettings();settings.screeningConfig.mentorship_demonstrated.reviewThreshold={metric:'yes_probability',operator:'below',value:.7};
+const store=settingsRepository(`${root}/settings.json`);await store.save(settings);
+const sleep=(ms:number)=>new Promise(resolve=>setTimeout(resolve,ms));
+const deps:Dependencies={pdfs:resumeFileStore(`${root}/resumes`),resumes:resumeRepository(db),analyses:analysisRepository(db),candidates:candidateRepository(db),settings:store,parserConfigured:()=>true,health:async()=>({online:true,model:'Synthetic demo fixture'}),parse:async()=>{await sleep(2300);return {text:source.resume,metadata:{provider:'Synthetic extraction fixture',jobId:'demo-only',pageCount:1}};},decide:async(_evidence,config)=>{await sleep(2600);return {screening:parseDeciderResponse(fixture(source,config),config),latencyMs:2600};}};
+const queue=new JobQueue(`${root}/jobs.sqlite`);const jobs=jobService(queue,deps);deps.jobs=jobs;
+process.env.NODE_ENV='production';const app=createApp(deps);
+const server=app.listen(4317,'127.0.0.1',()=>console.log('Synthetic demo: http://127.0.0.1:4317'));
+jobs.start();
+await mkdir('demo/output',{recursive:true});await writeFile('demo/output/session.json',JSON.stringify({root,url:'http://127.0.0.1:4317',providers:'AUTHORED SYNTHETIC FIXTURES',started:new Date().toISOString()},null,2));
+async function stop(){server.close();await jobs.stop();queue.close();await db.$disconnect();process.exit(0);}process.on('SIGTERM',stop);process.on('SIGINT',stop);
