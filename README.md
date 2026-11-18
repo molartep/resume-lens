@@ -4,8 +4,6 @@
 
 ResumeLens helps hiring teams review resumes against configurable criteria, with visible evidence and model outputs for human judgment.
 
-## See ResumeLens in action
-
 [![Watch the 45-second ResumeLens promo](demo/promo/output/readme-preview.gif)](demo/promo/output/resume-lens-promo-45s.mp4)
 
 **[Watch ResumeLens in action](demo/promo/output/resume-lens-promo-45s.mp4)** · Your criteria, configurable review thresholds, and evidence-centered candidate analysis. The preview uses fictional data.
