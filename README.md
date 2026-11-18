@@ -6,7 +6,9 @@ ResumeLens helps hiring teams review resumes against configurable criteria, with
 
 [![Watch the 45-second ResumeLens promo](demo/promo/output/readme-preview.gif)](demo/promo/output/resume-lens-promo-45s.mp4)
 
-**[Watch ResumeLens in action](demo/promo/output/resume-lens-promo-45s.mp4)** · Your criteria, configurable review thresholds, and evidence-centered candidate analysis. The preview uses fictional data.
+Your criteria, configurable review thresholds, and evidence-centered candidate analysis. The preview uses fictional data.
+
+A local application for AI-assisted resume review. Separate screening dimensions, model distributions, and parsed evidence help a human reviewer interpret a resume. There is no overall candidate score, candidate ranking, or automatic employment decision.
 
 <details>
 <summary>Platform screenshot</summary>
@@ -14,8 +16,6 @@ ResumeLens helps hiring teams review resumes against configurable criteria, with
 ![ResumeLens workspace](docs/brand/qa/workspace-1440.png)
 
 </details>
-
-A local application for AI-assisted resume review. Separate screening dimensions, model distributions, and parsed evidence help a human reviewer interpret a resume. There is no overall candidate score, candidate ranking, or automatic employment decision.
 
 ## Prerequisites and quick start
 
