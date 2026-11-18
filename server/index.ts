@@ -1,3 +1,5 @@
+import {modelRepository} from './repositories/modelRepository';
+import {modelService} from './services/modelService';
 import 'dotenv/config';
 import {mkdir,chmod} from 'node:fs/promises';
 import {JobQueue} from './repositories/jobQueue';
@@ -11,9 +13,9 @@ import { prisma } from './repositories/db';
 import { candidateRepository } from './repositories/candidateRepository';
 import { analysisRepository } from './repositories/analysisRepository';
 import { parseResume,parserConfigured } from './services/llamaIndexService';
-import { analyzeWithDecider,checkDeciderHealth } from './services/deciderService';
 const pdfs=resumeFileStore();await pdfs.cleanupDrafts();
-const dependencies:Dependencies={pdfs,resumes:resumeRepository(prisma),settings:settingsRepository(),candidates:candidateRepository(prisma),analyses:analysisRepository(prisma),parse:parseResume,decide:analyzeWithDecider,parserConfigured,health:checkDeciderHealth};
+const models=modelService(modelRepository());
+const dependencies:Dependencies={models,pdfs,resumes:resumeRepository(prisma),settings:settingsRepository(),candidates:candidateRepository(prisma),analyses:analysisRepository(prisma),parse:parseResume,decide:models.decide,parserConfigured,health:models.health};
 await mkdir('storage',{recursive:true,mode:0o700});
 const queue=new JobQueue('storage/jobs.sqlite');
 await chmod('storage/jobs.sqlite',0o600);

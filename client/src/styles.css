@@ -50,3 +50,4 @@ p{color:var(--rl-text-on-canvas)}.card p{color:var(--rl-text-muted)}
 .tag{color:var(--rl-text-on-canvas)}.breadcrumb,.local-badge{color:var(--rl-text-muted)}
 input:not([type=file]):not([type=checkbox]),textarea,select{border-color:var(--rl-control-border)}
 .track>div{background:var(--rl-chart-neutral)}.selected .track>div{background:var(--rl-brand)}
+.model-settings{margin-bottom:24px;min-width:0}.model-settings fieldset{border:0;padding:0;margin:0;min-width:0}.model-settings .field{min-width:0}.model-settings input,.model-settings select{width:100%;max-width:100%;min-width:0}.model-settings .settings-actions{flex-wrap:wrap;align-items:end}.model-settings .settings-actions>.field{flex:1 1 220px}.model-settings h3{margin:20px 0 12px}.model-settings form>p{margin-top:14px;overflow-wrap:anywhere}

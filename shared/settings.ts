@@ -1,5 +1,8 @@
+import type {ModelProfile} from './models';
 import type { ScreeningConfig } from './types';
 export type RuntimeSettings = {
+  /** Server-resolved, secret-free snapshot for an accepted analysis job. */
+  inference?:ModelProfile;
   parser: { tier:'fast'|'cost_effective'|'agentic'|'agentic_plus'; version:string; customPrompt:string; disableCache:boolean; timeoutMs:number; pollIntervalMs:number };
   decider: { timeoutMs:number; healthTimeoutMs:number };
   workflow: { maxPdfMb:number; draftExpiryMinutes:number; maxPendingDrafts:number; timezone:string };

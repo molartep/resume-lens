@@ -1,3 +1,5 @@
+import type {ModelService} from '../services/modelService';
+import {modelRouter} from './models';
 import type {JobService} from '../services/jobService';
 import type {resumeRepository} from '../repositories/resumeRepository';
 import type {ResumeFileStore} from '../services/resumeFileService';
@@ -14,9 +16,10 @@ import { normalizeResume,suggestProfessionalEvidence,assertProfessionalEvidence 
 import type { ParsedResume, Screening, ScreeningConfig } from '../../shared/types';
 import type { candidateRepository } from '../repositories/candidateRepository';
 import type { analysisRepository } from '../repositories/analysisRepository';
-export type Dependencies={jobs?:JobService;candidates:ReturnType<typeof candidateRepository>;analyses:Pick<ReturnType<typeof analysisRepository>,'list'|'save'> & Partial<Pick<ReturnType<typeof analysisRepository>,'find'>>;pdfs?:ResumeFileStore;resumes?:ReturnType<typeof resumeRepository>;settings?:SettingsStore;parse:(pdf:Buffer,settings?:RuntimeSettings)=>Promise<ParsedResume>;decide:(text:string,config:ScreeningConfig,settings?:RuntimeSettings)=>Promise<{screening:Screening;latencyMs:number}>;parserConfigured:()=>boolean;health:(settings?:RuntimeSettings)=>Promise<{online:boolean;model?:string}>};
+export type Dependencies={models?:ModelService;jobs?:JobService;candidates:ReturnType<typeof candidateRepository>;analyses:Pick<ReturnType<typeof analysisRepository>,'list'|'save'> & Partial<Pick<ReturnType<typeof analysisRepository>,'find'>>;pdfs?:ResumeFileStore;resumes?:ReturnType<typeof resumeRepository>;settings?:SettingsStore;parse:(pdf:Buffer,settings?:RuntimeSettings)=>Promise<ParsedResume>;decide:(text:string,config:ScreeningConfig,settings?:RuntimeSettings)=>Promise<{screening:Screening;latencyMs:number}>;parserConfigured:()=>boolean;health:(settings?:RuntimeSettings)=>Promise<{online:boolean;model?:string;status?:string}>};
 export function apiRouter(deps:Dependencies){
  const router=Router();
+ if(deps.models)router.use(modelRouter(deps.models));
  let inMemorySettings=defaultSettings();
  const store=deps.settings||{get:async()=>structuredClone(inMemorySettings),save:async(value:RuntimeSettings)=>{inMemorySettings=structuredClone(value);return structuredClone(value);}};
  const pending=new Map<string,{parsed:ParsedResume;filename:string;pdfKey?:string;resumeId?:string;expires:number}>();
@@ -33,7 +36,7 @@ export function apiRouter(deps:Dependencies){
  router.get('/health',async(_req,res)=>{
   let config=true;let settings:RuntimeSettings|undefined;try{settings=await store.get();}catch{config=false;}
   const [decider,database]=await Promise.all([deps.health(settings),deps.candidates.health().then(()=>true).catch(()=>false)]);
-  res.json({llamaIndex:deps.parserConfigured()?'Configured':'Error',decider:decider.online?'Online':'Offline',database:database?'Connected':'Error',model:decider.model,config:config?'Valid':'Error'});
+  res.json({llamaIndex:deps.parserConfigured()?'Configured':'Error',decider:decider.online?(decider.status==='ready'?'Ready':'Online'):'Offline',database:database?'Connected':'Error',model:decider.model,config:config?'Valid':'Error'});
  });
  router.get('/config',async(_req,res)=>res.json((await store.get()).screeningConfig));
  router.put('/config',async(req,res)=>{if(busy)throw new AppError(409,'BUSY','Wait for the current resume operation before changing dimensions.');busy=true;try{const settings=await store.get();const value=validateSettings({...settings,screeningConfig:req.body});await store.save(value);res.json(value.screeningConfig);}finally{busy=false;}});
@@ -113,7 +116,8 @@ export function apiRouter(deps:Dependencies){
   if(deps.jobs){
    try{assertProfessionalEvidence(body.data.evidence);}catch(error){throw new AppError(400,'PERSONAL_INFORMATION',(error as Error).message);}
    if(body.data.candidateId&&!await deps.candidates.find(body.data.candidateId))throw new AppError(404,'NOT_FOUND','Candidate not found.');
-   const settings=await store.get();
+   const savedSettings=await store.get();
+   const settings=deps.models?await deps.models.snapshot(savedSettings):savedSettings;
    const config=resolveConfig(validateConfig(settings.screeningConfig),new Date(),settings.workflow.timezone);
    const job=deps.jobs.analyze(body.data,settings,config);
    res.status(202).location(`/api/jobs/${job.id}`).json(job);return;
@@ -123,10 +127,11 @@ export function apiRouter(deps:Dependencies){
   try{assertProfessionalEvidence(body.data.evidence);}catch(error){throw new AppError(400,'PERSONAL_INFORMATION',(error as Error).message);}
   busy=true;
   try{
-   const settings=await store.get();
+   const savedSettings=await store.get();
+   const settings=deps.models?await deps.models.snapshot(savedSettings):savedSettings;
    const config=resolveConfig(validateConfig(settings.screeningConfig),new Date(),settings.workflow.timezone);
    if(body.data.candidateId&&!await deps.candidates.find(body.data.candidateId))throw new AppError(404,'NOT_FOUND','Candidate not found.');
-   if(!(await deps.health(settings)).online)throw new AppError(503,'DECIDER_OFFLINE','Strands Decider is offline. Start your separately managed local server.');
+   if(!(await deps.health(settings)).online)throw new AppError(503,'MODEL_OFFLINE','The selected analysis model is unavailable. Check its connection in Settings.');
    const {screening,latencyMs}=await deps.decide(body.data.evidence,config,settings);
    if(draft.pdfKey&&!draft.resumeId)await deps.pdfs!.retain(draft.pdfKey);
    let saved:Awaited<ReturnType<Dependencies['analyses']['save']>>;

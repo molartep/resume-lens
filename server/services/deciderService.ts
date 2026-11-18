@@ -35,13 +35,13 @@ export function deciderUrl(){
  if(url.protocol!=='http:'||url.hostname!=='127.0.0.1'||url.username||url.password||url.pathname!=='/') throw new AppError(500,'DECIDER_CONFIG','STRANDS_DECIDER_URL must be a local http://127.0.0.1 URL.');
  return url.origin;
 }
-export async function checkDeciderHealth(settings:RuntimeSettings=defaultSettings()){
- try{const r=await fetch(`${deciderUrl()}/health`,{signal:AbortSignal.timeout(settings.decider.healthTimeoutMs)});const data=await r.json();return {online:r.ok&&data.status==='ok',model:typeof data.model==='string'?data.model:undefined,maxLength:data.max_length};}catch{return {online:false};}
+export async function checkDeciderHealth(settings:RuntimeSettings=defaultSettings(),origin=deciderUrl()){
+ try{const r=await fetch(`${origin}/health`,{redirect:'error',signal:AbortSignal.timeout(settings.decider.healthTimeoutMs)});const data=await r.json();return {online:r.ok&&data.status==='ok',model:typeof data.model==='string'?data.model:undefined,maxLength:data.max_length};}catch{return {online:false};}
 }
-export async function analyzeWithDecider(text:string,config:ScreeningConfig,settings:RuntimeSettings=defaultSettings()){
+export async function analyzeWithDecider(text:string,config:ScreeningConfig,settings:RuntimeSettings=defaultSettings(),origin=deciderUrl()){
  const started=performance.now();
  try{
-  const r=await fetch(`${deciderUrl()}/v1/systemone`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(buildRequest(text,config)),signal:AbortSignal.timeout(settings.decider.timeoutMs)});
+  const r=await fetch(`${origin}/v1/systemone`,{method:'POST',redirect:'error',headers:{'Content-Type':'application/json'},body:JSON.stringify(buildRequest(text,config)),signal:AbortSignal.timeout(settings.decider.timeoutMs)});
   if(!r.ok) throw new AppError(502,'DECIDER_REQUEST',r.status===422?'Decider could not process this request. Check the rubric and shorten the reviewed evidence if necessary.':'Decider could not complete the analysis. Try again.');
   let raw:unknown;try{raw=await r.json();}catch{throw new AppError(502,'INVALID_DECIDER_RESPONSE','Decider returned invalid JSON.');}
   return {screening:parseDeciderResponse(raw,config),latencyMs:performance.now()-started};

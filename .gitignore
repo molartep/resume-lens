@@ -11,3 +11,7 @@ config/runtime.settings.json
 config/runtime.settings.json.*.tmp
 
 storage/
+
+# Private model connection profiles and API keys
+config/model-connections.json
+config/model-connections.json.*.tmp

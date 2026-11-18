@@ -1,3 +1,5 @@
+import {modelTemplate} from '../../shared/models';
+import {deciderUrl} from './deciderService';
 import type {Dependencies} from '../routes/api';
 import type {RuntimeSettings} from '../../shared/settings';
 import type {ParsedResume,ScreeningConfig} from '../../shared/types';
@@ -31,12 +33,14 @@ export function jobService(queue:JobQueue,deps:Dependencies){
     result={token:job.id,filename,resumeId:document.id,parsedResume:parsed,suggestedEvidence:suggestProfessionalEvidence(parsed.text),expiresInMinutes:settings.workflow.draftExpiryMinutes};
    }else{
     const {input,draft,settings,config}=job.payload as {input:AnalysisInput;draft:DurableDraft;settings:RuntimeSettings;config:ScreeningConfig};
-    progress(15,'Checking Decider availability');
+    // Jobs accepted before model profiles existed were always local Decider jobs.
+    const executionSettings=deps.models&&!settings.inference?{...settings,inference:{...modelTemplate('local'),baseUrl:deciderUrl(),timeoutMs:settings.decider.timeoutMs}}:settings;
+    progress(15,'Checking analysis model availability');
     let decision=job.checkpoint;
     if(!decision){
-     if(!(await deps.health(settings)).online)throw new AppError(503,'DECIDER_OFFLINE','Strands Decider is offline. Start your separately managed local server.');
+     if(!(await deps.health(executionSettings)).online)throw new AppError(503,'MODEL_OFFLINE','The selected analysis model is unavailable. Check its connection in Settings.');
      progress(30,'Analyzing screening dimensions');
-     decision=await deps.decide(input.evidence,config,settings);
+     decision=await deps.decide(input.evidence,config,executionSettings);
     }
     progress(85,'Saving candidate and analysis',decision);
     const {candidate,analysis}=await deps.analyses.save({id:job.id,candidateId:input.candidateId,name:input.name,resumeFilename:draft.filename,resumePdfKey:draft.pdfKey,resumeDocumentId:draft.resumeId,parsedResume:draft.parsed,evidence:input.evidence,screening:decision.screening,config,latencyMs:decision.latencyMs});

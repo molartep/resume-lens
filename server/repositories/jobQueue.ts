@@ -62,13 +62,13 @@ export class JobQueue {
  }
  fail(id:string,owner:string,error:unknown){
   const safe=error instanceof AppError?{code:error.code,message:error.message}:{code:'JOB_FAILED',message:'The operation could not be saved. Check storage and database availability, then retry.'};
-  this.db.prepare("UPDATE jobs SET status='failed',message='Failed',error=?,retryAt=?,owner=NULL,updatedAt=? WHERE id=? AND owner=? AND status='processing'").run(JSON.stringify(safe),Date.now()+60_000,Date.now(),id,owner);
+  this.db.prepare("UPDATE jobs SET status='failed',message='Failed',error=?,retryAt=?,owner=NULL,updatedAt=? WHERE id=? AND owner=? AND status='processing'").run(JSON.stringify(safe),Date.now()+Math.max(60_000,error instanceof AppError?error.retryAfterMs??0:0),Date.now(),id,owner);
  }
  retry(id:string){
   const job=this.get(id);
   if(job.status!=='failed')throw new AppError(409,'JOB_NOT_FAILED','Only failed jobs can be retried.');
   if(job.attempts>=job.maxAttempts)throw new AppError(409,'RETRY_LIMIT','This job has reached its retry limit.');
-  if(Date.now()<job.retryAt)throw new AppError(409,'RETRY_WAIT','Wait one minute after failure before retrying.');
+  if(Date.now()<job.retryAt)throw new AppError(409,'RETRY_WAIT','Wait at least one minute and until this job’s retry cooldown has elapsed.');
   this.db.prepare("UPDATE jobs SET status='queued',progress=0,message='Waiting to retry',error=NULL,updatedAt=? WHERE id=? AND status='failed' AND attempts<maxAttempts AND retryAt<=?").run(Date.now(),id,Date.now());
   return this.get(id);
  }

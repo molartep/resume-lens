@@ -1,3 +1,6 @@
+import {modelRepository} from '../server/repositories/modelRepository';
+import {modelService} from '../server/services/modelService';
+import {modelTemplate} from '../shared/models';
 import {it,expect,vi} from 'vitest';
 import {DatabaseSync} from 'node:sqlite';
 import {mkdtemp,readFile,rm,readdir} from 'node:fs/promises';
@@ -61,10 +64,12 @@ it('runs queued upload and reviewed analysis across restart, with idempotent sav
   await jobs.runOnce();const parsed=(await request(app).get(`/api/jobs/${accepted.body.id}`)).body;
   expect(parsed.status).toBe('completed');expect(await db.resumeDocument.count()).toBe(1);
   queue.close();queue=new JobQueue(file);jobs=jobService(queue,deps);deps.jobs=jobs;app=createApp(deps);
+  const connections=modelRepository(path.join(dir,'connections.json'));const selectedProfile={...modelTemplate('groq'),enabled:true};await connections.save(selectedProfile,'private-job-key');await connections.select('groq');deps.models=modelService(connections);app=createApp(deps);
   const body={token:parsed.result.token,name:'Test',evidence:'Built and shipped API services.',reviewed:true};
   expect((await request(app).post('/api/resumes/analyze').send({...body,reviewed:false})).status).toBe(400);
   const analysis=await request(app).post('/api/resumes/analyze').send(body);expect(analysis.status).toBe(202);
   expect((await request(app).post('/api/resumes/analyze').send(body)).body.id).toBe(analysis.body.id);
+  const storedPayload=JSON.parse((sql.prepare('SELECT payload FROM jobs WHERE id=?').get(analysis.body.id) as {payload:string}).payload);expect(storedPayload.settings.inference.model).toBe(selectedProfile.model);expect(JSON.stringify(storedPayload)).not.toContain('private-job-key');await connections.select('local');
   const save=deps.analyses.save;deps.analyses.save=vi.fn().mockRejectedValueOnce(new Error('storage unavailable')).mockImplementation(save);
   await jobs.runOnce();expect(queue.get(analysis.body.id).status).toBe('failed');expect(await db.candidate.count()).toBe(0);
   sql.prepare('UPDATE jobs SET retryAt=0 WHERE id=?').run(analysis.body.id);
@@ -73,7 +78,7 @@ it('runs queued upload and reviewed analysis across restart, with idempotent sav
   await jobs.runOnce();expect(queue.get(analysis.body.id).status).toBe('failed');expect(await db.resumeAnalysis.count()).toBe(1);
   sql.prepare('UPDATE jobs SET retryAt=0 WHERE id=?').run(analysis.body.id);
   queue.retry(analysis.body.id);await jobs.runOnce();const completed=queue.get(analysis.body.id);
-  expect(completed.status).toBe('completed');expect(deps.decide).toHaveBeenCalledTimes(1);expect(await db.resumeAnalysis.count()).toBe(1);
+  expect(completed.status).toBe('completed');expect(deps.decide).toHaveBeenCalledTimes(1);expect(vi.mocked(deps.decide).mock.calls[0][2]?.inference).toMatchObject({provider:'groq',model:selectedProfile.model});expect(await db.resumeAnalysis.count()).toBe(1);
   expect(await db.candidate.count()).toBe(1);
   expect((await request(app).post('/api/resumes/analyze').send(body)).body.id).toBe(completed.id);
   expect(await db.resumeAnalysis.count()).toBe(1);expect((await readdir(path.join(dir,'resumes'))).filter(n=>n.endsWith('.pdf'))).toHaveLength(1);

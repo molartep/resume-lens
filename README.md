@@ -21,7 +21,7 @@ A local application for AI-assisted resume review. Separate screening dimensions
 
 - Node.js 22.13+ (Node 24 supported), npm, and internet access for LlamaCloud parsing.
 - A LlamaCloud API key with parsing access and available credits.
-- Your existing Strands Decider server, separately managed at `http://127.0.0.1:1209`, serving `StrandsAgents/strands-decider-2B-hobson-v19`.
+- Either a supported cloud model API key (see [model connections](docs/model-providers.md)), or your existing Strands Decider server, separately managed at `http://127.0.0.1:1209`, serving `StrandsAgents/strands-decider-2B-hobson-v19`.
 - SQLite requires no server. Prisma and its local engine are installed by npm.
 
 ```sh
@@ -36,6 +36,10 @@ npm run dev
 Open [http://127.0.0.1:5173](http://127.0.0.1:5173). Express listens on port 3000. Vite proxies `/api` to Express. If changing `PORT`, also change the proxy target in `client/vite.config.ts`.
 
 The install hook generates Prisma Client and creates an empty `prisma/dev.db` only if absent. It never overwrites an existing database. The committed initial migration creates the tables. `.env`, database files, and uploaded resumes are excluded from version control.
+
+## Analysis model selection
+
+Choose Local Strands Decider, OpenAI Decisions, Gemini, Claude, or Groq in **Settings → Analysis models**. Administrators can manage multiple model connections, keys and provider parameters. Set `ADMIN_API_TOKEN` in `.env` to unlock management; cloud keys can be stored through Settings or supplied through environment variables. Local Decider stays the default. Queued analyses retain their chosen model and parameter snapshot. See [setup, official API references and processing details](docs/model-providers.md).
 
 ## LlamaIndex configuration
 
