@@ -1,0 +1,82 @@
+[
+  {
+    "pair": "main ink / white",
+    "foreground": "#233D3B",
+    "background": "#FFFFFF",
+    "contrast": 11.65,
+    "requiredContrast": 4.5,
+    "passes": true
+  },
+  {
+    "pair": "muted / white",
+    "foreground": "#667876",
+    "background": "#FFFFFF",
+    "contrast": 4.65,
+    "requiredContrast": 4.5,
+    "passes": true
+  },
+  {
+    "pair": "canvas companion / canvas",
+    "foreground": "#5D706A",
+    "background": "#F5F7F7",
+    "contrast": 4.89,
+    "requiredContrast": 4.5,
+    "passes": true
+  },
+  {
+    "pair": "secondary / tag surface",
+    "foreground": "#5D706A",
+    "background": "#F1F5F3",
+    "contrast": 4.78,
+    "requiredContrast": 4.5,
+    "passes": true
+  },
+  {
+    "pair": "CTA white / action",
+    "foreground": "#FFFFFF",
+    "background": "#226C5C",
+    "contrast": 6.24,
+    "requiredContrast": 4.5,
+    "passes": true
+  },
+  {
+    "pair": "focus / white",
+    "foreground": "#1D645A",
+    "background": "#FFFFFF",
+    "contrast": 6.95,
+    "requiredContrast": 4.5,
+    "passes": true
+  },
+  {
+    "pair": "reverse / deep",
+    "foreground": "#FFFFFF",
+    "background": "#173A32",
+    "contrast": 12.44,
+    "requiredContrast": 4.5,
+    "passes": true
+  },
+  {
+    "pair": "neutral result label / white",
+    "foreground": "#526962",
+    "background": "#FFFFFF",
+    "contrast": 5.91,
+    "requiredContrast": 4.5,
+    "passes": true
+  },
+  {
+    "pair": "neutral chart bar / track",
+    "foreground": "#668A78",
+    "background": "#E6EEEA",
+    "contrast": 3.25,
+    "requiredContrast": 3,
+    "passes": true
+  },
+  {
+    "pair": "control border / white",
+    "foreground": "#7F958A",
+    "background": "#FFFFFF",
+    "contrast": 3.2,
+    "requiredContrast": 3,
+    "passes": true
+  }
+]

@@ -1,0 +1,24 @@
+/* ResumeLens v1.0 — semantic aliases from docs/brand/BRAND.md. */
+:root {
+  --rl-brand: #1d645a;
+  --rl-action: #226c5c;
+  --rl-action-hover: #195645;
+  --rl-ink: #233d3b;
+  --rl-text-muted: #667876;
+  --rl-text-on-canvas: #5d706a;
+  --rl-control-border: #7f958a;
+  --rl-chart-neutral: #668a78;
+  --rl-canvas: #f5f7f7;
+  --rl-surface: #ffffff;
+  --rl-selected: #e9f3ef;
+  --rl-border: #e0e7e4;
+  --rl-deep: #173a32;
+  --rl-focus: #1d645a;
+  --rl-info: #50738e;
+  --rl-info-surface: #eaf1f7;
+  --rl-warning: #a03e34;
+  --rl-warning-surface: #fff1ef;
+  --rl-font: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --rl-radius-control: 6px;
+  --rl-radius-card: 9px;
+}

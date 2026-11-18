@@ -1,0 +1,40 @@
+{
+  "archiveSha256": "f65a827e3c1c0183613bb7246325fdd89f755ad4ec97498f492b2bb5090b62f0",
+  "files": [
+    {
+      "file": "BRAND.md",
+      "sha256": "a46b85f45fadf3050d36499122563182d06d4a4f943232f4c35a01eba4f4378f",
+      "preservedByteForByte": true
+    },
+    {
+      "file": "assets/logo-horizontal.svg",
+      "sha256": "2d829419b2db5e8ae17450486e5b6adb0646c9bfe3f7089a89b6b51abc1fad50",
+      "preservedByteForByte": true
+    },
+    {
+      "file": "assets/logo-icon.svg",
+      "sha256": "51b0edca3cb4a9139c6440cff78d28793e7a953b72bb3c9894a05dcccb9055c0",
+      "preservedByteForByte": true
+    },
+    {
+      "file": "assets/logo-reversed.png",
+      "sha256": "a43e08995ac8d97a1fa7c0090565eec86d1ad8d94950ee2da728a77c35c636aa",
+      "preservedByteForByte": true
+    },
+    {
+      "file": "assets/logo-reversed.svg",
+      "sha256": "7640d8c312cc7f88510efb48420c6e0a00e69d49992b570572b68cdea008aa58",
+      "preservedByteForByte": true
+    },
+    {
+      "file": "assets/logo-horizontal.png",
+      "sha256": "5c79898b0717f6b3b8b1d129018bdfb1ab962309d91fd151cf60d48d89866b53",
+      "preservedByteForByte": true
+    },
+    {
+      "file": "assets/logo-icon.png",
+      "sha256": "d4d3cbbea67cd713d30949d686c4e2053ed3e9d2cb275371491a4505e267fd75",
+      "preservedByteForByte": true
+    }
+  ]
+}

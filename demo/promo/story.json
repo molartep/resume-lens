@@ -1,0 +1,10 @@
+[
+ {"id":"hook","eyebrow":"BEYOND THE APPLICATION TRACKER","title":"A résumé is more\nthan keywords.","body":"Give your team a clearer way\nto review the evidence.","voice":"Go beyond keywords. Give your hiring team a clearer way to review every résumé.","kind":"hero","capture":"hook"},
+ {"id":"brand","eyebrow":"INTRODUCING","title":"ResumeLens","body":"Bring your criteria into focus.","voice":"Meet Résumé Lens.","kind":"brand","capture":null},
+ {"id":"criteria","eyebrow":"YOUR TEAM. YOUR CRITERIA.","title":"Your team.\nYour criteria.","body":"Type what matters.\nDefine the evidence to look for.","voice":"Define your own criteria. Type the skills and evidence that matter for the role.","kind":"split","capture":"criteria"},
+ {"id":"threshold","eyebrow":"YOUR REVIEW RULES","title":"Set the threshold.\nKeep the context.","body":"Flag mentorship below 70%\nfor a closer human review.","voice":"Set a threshold. Flag mentorship below seventy percent for a closer look.","kind":"split","capture":"threshold"},
+ {"id":"speed","eyebrow":"FAST DECISION MODELS","title":"Your rubric.\nApplied consistently.","body":"Run the review against\nyour team's criteria.","voice":"Run the review. Fast decision models apply your criteria to the evidence.","kind":"split","capture":"speed"},
+ {"id":"scores","eyebrow":"CLEAR, SEPARATE DIMENSIONS","title":"See the signals\ntake shape.","body":"Individual scores.\nVisible distributions.","voice":"Watch the signals emerge. Mentorship reaches a ninety-two percent yes probability.","kind":"scores","capture":"scores"},
+ {"id":"evidence","eyebrow":"EVIDENCE OVER ASSUMPTIONS","title":"Keep the source\nin view.","body":"Original résumé. Reviewed evidence.\nYour team's judgment.","voice":"Check the source résumé. Keep every interpretation connected to evidence, and the decision with your team.","kind":"split","capture":"evidence"},
+ {"id":"close","eyebrow":"YOUR CRITERIA. CLEARER DECISIONS.","title":"Your criteria.\nClearer decisions.","body":"Bring your team's criteria into focus.","voice":"Your criteria. Clearer evidence. Better informed decisions. Résumé Lens.","kind":"close","capture":null}
+]

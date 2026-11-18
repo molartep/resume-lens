@@ -9,3 +9,10 @@ assets/*.txt
 assets/*.ffscript
 assets/resume-preview.png
 output/contact-sheet.png
+promo/assets/*.wav
+promo/assets/voice-manifest.json
+promo/output/preview-*.jpg
+promo/output/contact-sheet.jpg
+__pycache__/
+promo/assets/player/
+promo/assets/clips/

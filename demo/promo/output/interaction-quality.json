@@ -1,0 +1,94 @@
+{
+  "viewport": {
+    "width": 1100,
+    "height": 800
+  },
+  "mode": "interactive video mockups using the production DimensionCard component",
+  "errors": [],
+  "scenes": [
+    {
+      "id": "hook",
+      "frameCount": 31,
+      "layoutFailures": []
+    },
+    {
+      "id": "criteria",
+      "frameCount": 158,
+      "layoutFailures": []
+    },
+    {
+      "id": "threshold",
+      "frameCount": 64,
+      "layoutFailures": []
+    },
+    {
+      "id": "speed",
+      "frameCount": 121,
+      "layoutFailures": []
+    },
+    {
+      "id": "scores",
+      "frameCount": 145,
+      "layoutFailures": [],
+      "finalValues": [
+        "92.0%Yes probability",
+        "3.50Expected level index \u00b7 0 to 4"
+      ],
+      "animationSamples": [
+        {
+          "progress": 0,
+          "yes": 0,
+          "barWidth": "0%"
+        },
+        {
+          "progress": 0.14881,
+          "yes": 35.3,
+          "barWidth": "35.2629%"
+        },
+        {
+          "progress": 0.29163142857142854,
+          "yes": 59.3,
+          "barWidth": "59.2987%"
+        },
+        {
+          "progress": 0.4344885714285715,
+          "yes": 75.4,
+          "barWidth": "75.3616%"
+        },
+        {
+          "progress": 0.5773457142857144,
+          "yes": 85.1,
+          "barWidth": "85.0539%"
+        },
+        {
+          "progress": 0.720167142857143,
+          "yes": 90,
+          "barWidth": "89.984%"
+        },
+        {
+          "progress": 0.86306,
+          "yes": 91.8,
+          "barWidth": "91.7637%"
+        },
+        {
+          "progress": 1,
+          "yes": 92,
+          "barWidth": "92%"
+        }
+      ]
+    },
+    {
+      "id": "evidence",
+      "frameCount": 31,
+      "layoutFailures": []
+    }
+  ],
+  "checks": {
+    "allTextAndPanelsFitViewport": true,
+    "mentorshipCountsFrom0To92": true,
+    "probabilityBarFinishesAt92Percent": true,
+    "fixedPlatformViewport": true,
+    "bottomRightInformativeTextRemoved": true,
+    "officialResumeLensBrandApplied": true
+  }
+}

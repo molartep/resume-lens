@@ -1,6 +1,6 @@
 1
 00:00:00,000 --> 00:00:05,000
-Meet Resume Lens: a clearer view of experience, built for human review.
+Meet ResumeLens: a clearer view of experience, built for human review.
 
 2
 00:00:05,000 --> 00:00:11,000

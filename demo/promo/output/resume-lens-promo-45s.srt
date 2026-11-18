@@ -1,0 +1,31 @@
+1
+00:00:00,180 --> 00:00:05,197
+Go beyond keywords. Give your hiring team a clearer way to review every résumé.
+
+2
+00:00:06,017 --> 00:00:07,506
+Meet ResumeLens.
+
+3
+00:00:07,956 --> 00:00:12,782
+Define your own criteria. Type the skills and evidence that matter for the role.
+
+4
+00:00:14,158 --> 00:00:18,674
+Set a threshold. Flag mentorship below seventy percent for a closer look.
+
+5
+00:00:19,680 --> 00:00:24,419
+Run the review. Fast decision models apply your criteria to the evidence.
+
+6
+00:00:24,869 --> 00:00:30,281
+Watch the signals emerge. Mentorship reaches a ninety-two percent yes probability.
+
+7
+00:00:31,472 --> 00:00:37,801
+Check the source résumé. Keep every interpretation connected to evidence, and the decision with your team.
+
+8
+00:00:38,992 --> 00:00:44,360
+Your criteria. Clearer evidence. Better informed decisions. ResumeLens.

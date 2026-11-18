@@ -21,6 +21,14 @@ for(const folder of ['20261004000000_init','20261004010000_resume_pdf','20261004
 const dataset=JSON.parse(await readFile('evaluations/dataset.json','utf8')).cases as Case[];
 const source=dataset.find(c=>c.id==='clear-backend')!;
 const settings=defaultSettings();settings.screeningConfig.mentorship_demonstrated.reviewThreshold={metric:'yes_probability',operator:'below',value:.7};
+if(process.env.DEMO_PROMO==='1'){
+ const q=settings.screeningConfig.technical_depth;
+ q.label='Production system ownership';
+ q.instructions="Evaluate concrete engineering ownership using our hiring team's rubric. Score the work actually described, not titles or technology keywords. Missing evidence should prompt human review.";
+ if(q.type==='score')q.criteria=['No implementation evidence','Small fixes within an existing design','Ships features end to end','Owns a production system and its tradeoffs','Leads architecture across complex systems'];
+ settings.screeningConfig.mentorship_demonstrated.label='Mentorship & coaching';
+ settings.screeningConfig.llm_experience.label='Applied AI delivery';
+}
 const store=settingsRepository(`${root}/settings.json`);await store.save(settings);
 const sleep=(ms:number)=>new Promise(resolve=>setTimeout(resolve,ms));
 const deps:Dependencies={pdfs:resumeFileStore(`${root}/resumes`),resumes:resumeRepository(db),analyses:analysisRepository(db),candidates:candidateRepository(db),settings:store,parserConfigured:()=>true,health:async()=>({online:true,model:'Synthetic demo fixture'}),parse:async()=>{await sleep(2300);return {text:source.resume,metadata:{provider:'Synthetic extraction fixture',jobId:'demo-only',pageCount:1}};},decide:async(_evidence,config)=>{await sleep(2600);return {screening:parseDeciderResponse(fixture(source,config),config),latencyMs:2600};}};

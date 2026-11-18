@@ -1,4 +1,10 @@
-# Resume Lens
+<p><img src="client/public/brand/logo-horizontal.svg" alt="ResumeLens" width="252" /></p>
+
+# ResumeLens
+
+ResumeLens helps hiring teams review resumes against configurable criteria, with visible evidence and model outputs for human judgment.
+
+![ResumeLens workspace](docs/brand/qa/workspace-1440.png)
 
 A local application for AI-assisted resume review. Separate screening dimensions, model distributions, and parsed evidence help a human reviewer interpret a resume. There is no overall candidate score, candidate ranking, or automatic employment decision.
 
@@ -189,4 +195,10 @@ For previously saved analyses, current thresholds apply immediately only when in
 
 Run `npm run evaluate` to evaluate the 12-case synthetic dataset against the separately managed local Decider. The report separates live measurements from deterministic validator checks and keeps live metrics unavailable when the service is offline. See [evaluation methodology](evaluations/README.md) and [latest findings](evaluations/results/latest.md).
 
-The [one-minute demo](demo/output/resume-lens-demo.mp4) shows the real application with fictional resumes and explicitly simulated provider responses. See [recording and reproduction notes](demo/README.md). The demo uses a separate temporary database and never reads candidate records from the normal workspace.
+The silent [one-minute demo](demo/output/resume-lens-demo.mp4) shows the real application with fictional resumes and explicitly simulated provider responses. See [recording and reproduction notes](demo/README.md). The demo uses a separate temporary database and never reads candidate records from the normal workspace.
+
+The separate [45-second promotional video](demo/promo/output/resume-lens-promo-45s.mp4) highlights team-defined criteria, fast decision models, dimension-level scoring, and source evidence. It uses a stock neural voice and fictional platform data. See [promo production notes](demo/promo/README.md).
+
+## Brand identity
+
+The complete [brand manual](docs/brand/BRAND.md), [supplied brand kit](docs/brand/resumelens-brand-kit.zip), and original assets are preserved under `docs/brand/`. The platform and both videos use the R-Lens logo, ResumeLens wordmark, and shared semantic palette. See [implementation and verification](docs/brand/IMPLEMENTATION.md).

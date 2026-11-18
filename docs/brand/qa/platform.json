@@ -1,0 +1,60 @@
+{
+  "errors": [],
+  "results": [
+    {
+      "width": 320,
+      "overflow": false,
+      "logoLoaded": true,
+      "logoVisible": true,
+      "title": "ResumeLens — Evidence-centered resume analysis",
+      "brand": "#1d645a",
+      "ariaCurrent": 1
+    },
+    {
+      "width": 375,
+      "overflow": false,
+      "logoLoaded": true,
+      "logoVisible": true,
+      "title": "ResumeLens — Evidence-centered resume analysis",
+      "brand": "#1d645a",
+      "ariaCurrent": 1
+    },
+    {
+      "width": 768,
+      "overflow": false,
+      "logoLoaded": true,
+      "logoVisible": true,
+      "title": "ResumeLens — Evidence-centered resume analysis",
+      "brand": "#1d645a",
+      "ariaCurrent": 1
+    },
+    {
+      "width": 1024,
+      "overflow": false,
+      "logoLoaded": true,
+      "logoVisible": true,
+      "title": "ResumeLens — Evidence-centered resume analysis",
+      "brand": "#1d645a",
+      "ariaCurrent": 1
+    },
+    {
+      "width": 1440,
+      "overflow": false,
+      "logoLoaded": true,
+      "logoVisible": true,
+      "title": "ResumeLens — Evidence-centered resume analysis",
+      "brand": "#1d645a",
+      "ariaCurrent": 1
+    },
+    {
+      "page": "Screening Dimensions",
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "page": "Settings",
+      "width": 1440,
+      "overflow": false
+    }
+  ]
+}
