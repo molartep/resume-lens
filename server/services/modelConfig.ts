@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import {modelTemplate,providerIds,type ModelProfile,type ProviderId} from '../../shared/models';
+import {modelTemplate,providerIds,usesGeminiDecisions,type ModelProfile,type ProviderId} from '../../shared/models';
 import {AppError} from './errors';
 export const keyEnvironment:Record<ProviderId,string>={local:'','openai-decisions':'OPENAI_API_KEY',gemini:'GEMINI_API_KEY',anthropic:'ANTHROPIC_API_KEY',groq:'GROQ_API_KEY'};
 const schema=z.object({id:z.string().regex(/^[a-z0-9][a-z0-9_-]{0,79}$/),name:z.string().trim().min(1).max(120),provider:z.enum(providerIds),model:z.string().trim().regex(/^[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,199}$/),enabled:z.boolean(),baseUrl:z.string().url(),timeoutMs:z.number().int().min(1000).max(600000),maxOutputTokens:z.number().int().min(256).max(65536),temperature:z.number().min(0).max(2).nullable(),organization:z.string().trim().max(200).regex(/^[\w-]*$/),project:z.string().trim().max(200).regex(/^[\w-]*$/),apiVersion:z.string().trim().max(40)}).strict();
@@ -12,6 +12,7 @@ export function validateModelProfile(value:unknown):ModelProfile{
  if(p.provider==='gemini'&&!['v1','v1beta'].includes(p.apiVersion))throw new AppError(400,'INVALID_MODEL_PROFILE','Gemini API version must be v1 or v1beta.');
  if(p.provider==='anthropic'&&p.apiVersion>='2026-10-21'&&p.temperature!==null)throw new AppError(400,'UNSUPPORTED_PARAMETER','This Anthropic API version does not accept temperature. Leave it blank.');
  if(p.provider==='gemini'&&!/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(p.model))throw new AppError(400,'INVALID_MODEL_PROFILE','Enter a Gemini model ID without the models/ prefix.');
+ if(usesGeminiDecisions(p)&&(p.apiVersion!=='v1beta'||p.temperature!==null))throw new AppError(400,'UNSUPPORTED_PARAMETER','Gemini Decision 1 requires API version v1beta and no temperature setting.');
  if(p.provider==='openai-decisions'&&(p.temperature!==null))throw new AppError(400,'UNSUPPORTED_PARAMETER','Decisions does not accept a temperature setting.');
  return {...p,baseUrl:u.origin};
 }

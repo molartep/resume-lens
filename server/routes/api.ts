@@ -16,7 +16,7 @@ import { normalizeResume,suggestProfessionalEvidence,assertProfessionalEvidence 
 import type { ParsedResume, Screening, ScreeningConfig } from '../../shared/types';
 import type { candidateRepository } from '../repositories/candidateRepository';
 import type { analysisRepository } from '../repositories/analysisRepository';
-export type Dependencies={models?:ModelService;jobs?:JobService;candidates:ReturnType<typeof candidateRepository>;analyses:Pick<ReturnType<typeof analysisRepository>,'list'|'save'> & Partial<Pick<ReturnType<typeof analysisRepository>,'find'>>;pdfs?:ResumeFileStore;resumes?:ReturnType<typeof resumeRepository>;settings?:SettingsStore;parse:(pdf:Buffer,settings?:RuntimeSettings)=>Promise<ParsedResume>;decide:(text:string,config:ScreeningConfig,settings?:RuntimeSettings)=>Promise<{screening:Screening;latencyMs:number}>;parserConfigured:()=>boolean;health:(settings?:RuntimeSettings)=>Promise<{online:boolean;model?:string;status?:string}>};
+export type Dependencies={models?:ModelService;jobs?:JobService;candidates:ReturnType<typeof candidateRepository>;analyses:Pick<ReturnType<typeof analysisRepository>,'list'|'save'> & Partial<Pick<ReturnType<typeof analysisRepository>,'find'>>;pdfs?:ResumeFileStore;resumes?:ReturnType<typeof resumeRepository>;settings?:SettingsStore;parse:(pdf:Buffer,settings?:RuntimeSettings)=>Promise<ParsedResume>;decide:(text:string,config:ScreeningConfig,settings?:RuntimeSettings)=>Promise<{screening:Screening;latencyMs:number}>;parserConfigured:()=>boolean;health:(settings?:RuntimeSettings)=>Promise<{online:boolean;model?:string;status?:string;provider?:string}>};
 export function apiRouter(deps:Dependencies){
  const router=Router();
  if(deps.models)router.use(modelRouter(deps.models));
@@ -36,7 +36,7 @@ export function apiRouter(deps:Dependencies){
  router.get('/health',async(_req,res)=>{
   let config=true;let settings:RuntimeSettings|undefined;try{settings=await store.get();}catch{config=false;}
   const [decider,database]=await Promise.all([deps.health(settings),deps.candidates.health().then(()=>true).catch(()=>false)]);
-  res.json({llamaIndex:deps.parserConfigured()?'Configured':'Error',decider:decider.online?(decider.status==='ready'?'Ready':'Online'):'Offline',database:database?'Connected':'Error',model:decider.model,config:config?'Valid':'Error'});
+  res.json({llamaIndex:deps.parserConfigured()?'Configured':'Error',decider:decider.online?(decider.status==='ready'?'Ready':'Online'):'Offline',database:database?'Connected':'Error',model:decider.model,analysisProvider:decider.provider,config:config?'Valid':'Error'});
  });
  router.get('/config',async(_req,res)=>res.json((await store.get()).screeningConfig));
  router.put('/config',async(req,res)=>{if(busy)throw new AppError(409,'BUSY','Wait for the current resume operation before changing dimensions.');busy=true;try{const settings=await store.get();const value=validateSettings({...settings,screeningConfig:req.body});await store.save(value);res.json(value.screeningConfig);}finally{busy=false;}});

@@ -19,6 +19,11 @@
   --rl-warning: #a03e34;
   --rl-warning-surface: #fff1ef;
   --rl-font: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --rl-field-label-gap: 8px;
+  --rl-field-following-gap: 16px;
+  --rl-field-group-gap: 24px;
+  --rl-select-arrow-inset: 16px;
+  --rl-select-padding-right: 48px;
   --rl-radius-control: 6px;
   --rl-radius-card: 9px;
 }

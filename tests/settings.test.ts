@@ -32,5 +32,7 @@ it('settings API changes future requests and validates updates',async()=>{
  const uploaded=await request(app).post('/api/resumes/parse').attach('resume',Buffer.from('%PDF-1.7'),{filename:'resume.pdf',contentType:'application/pdf'});expect(uploaded.status).toBe(200);expect(uploaded.body.expiresInMinutes).toBe(5);expect(parse.mock.calls[0][1].parser.tier).toBe('cost_effective');
  const oversized=await request(app).post('/api/resumes/parse').attach('resume',Buffer.alloc(1024*1024+1),{filename:'big.pdf',contentType:'application/pdf'});expect(oversized.status).toBe(400);
  expect((await request(app).put('/api/settings').send({...settings,apiKey:'secret'})).status).toBe(400);expect((await request(app).get('/api/settings')).body.settings.parser.tier).toBe('cost_effective');
- expect((await request(app).put('/api/settings').set('Origin','https://example.com').send(settings)).status).toBe(403);
+ for(const origin of ['http://127.0.0.1:5174','http://localhost:5174'])expect((await request(app).put('/api/settings').set('Origin',origin).set('Sec-Fetch-Site','same-origin').send(settings)).status).toBe(200);
+ for(const origin of ['https://example.com','http://127.0.0.1:5174.evil.test','http://localhost:9000','null'])expect((await request(app).put('/api/settings').set('Origin',origin).send(settings)).status).toBe(403);
+ expect((await request(app).put('/api/settings').set('Origin','http://127.0.0.1:5174').set('Sec-Fetch-Site','cross-site').send(settings)).status).toBe(403);
 });

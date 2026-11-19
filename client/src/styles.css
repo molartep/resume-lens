@@ -51,3 +51,51 @@ p{color:var(--rl-text-on-canvas)}.card p{color:var(--rl-text-muted)}
 input:not([type=file]):not([type=checkbox]),textarea,select{border-color:var(--rl-control-border)}
 .track>div{background:var(--rl-chart-neutral)}.selected .track>div{background:var(--rl-brand)}
 .model-settings{margin-bottom:24px;min-width:0}.model-settings fieldset{border:0;padding:0;margin:0;min-width:0}.model-settings .field{min-width:0}.model-settings input,.model-settings select{width:100%;max-width:100%;min-width:0}.model-settings .settings-actions{flex-wrap:wrap;align-items:end}.model-settings .settings-actions>.field{flex:1 1 220px}.model-settings h3{margin:20px 0 12px}.model-settings form>p{margin-top:14px;overflow-wrap:anywhere}
+/* Brand manual §5.3: consistent field rhythm and inset dropdown arrows. */
+.field{display:flex;flex-direction:column;gap:var(--rl-field-label-gap);margin-top:var(--rl-field-group-gap);margin-bottom:0}
+.field>span{margin:0}
+.field>input,.field>textarea,.field>select{margin:0}
+.field+p,.field+button,.field+.check,.field+details{margin-top:var(--rl-field-following-gap)}
+.settings-actions{margin-top:var(--rl-field-group-gap);flex-wrap:wrap}
+.model-settings .settings-actions>.field{margin-top:0}
+.model-settings form{margin-top:var(--rl-field-group-gap)}
+.model-settings input[type=checkbox]{width:auto;flex:none}
+select:not([multiple]){appearance:none;-webkit-appearance:none;padding-right:var(--rl-select-padding-right);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%23233d3b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-size:16px 16px;background-position:right var(--rl-select-arrow-inset) center}
+@media(forced-colors:active){select:not([multiple]){appearance:auto;-webkit-appearance:auto;background-image:none}}
+/* Settings sections, direct status links and save acknowledgement. */
+.settings-workspace>form:empty{display:none}
+.settings-workspace fieldset{border:0;margin:0;padding:0;min-width:0}
+.settings-subsection{margin-top:32px;padding-top:24px;border-top:1px solid var(--rl-border)}
+.settings-subsection h3{font-size:16px;margin:0}
+.settings-workspace a{color:var(--rl-brand)}
+.settings-subsection>p,.settings-subsection>dl{margin-top:16px}
+.model-settings .local-decider-settings .card-heading{flex-wrap:wrap;gap:16px;align-items:center}
+.model-settings .local-decider-settings h3{margin:0}
+.model-settings .local-decider-settings .field>span{font-weight:400}
+.settings-workspace [id=analysis-models],.settings-workspace [id=document-processing]{scroll-margin-top:24px}
+.workspace-environment summary{font-size:14px;color:var(--rl-ink)}
+.workspace-environment .environment-list{margin-top:24px}
+.save-confirmation{border:1px solid var(--rl-border);border-radius:12px;padding:32px;max-width:440px;width:calc(100% - 32px);color:var(--rl-ink);background:var(--rl-surface);box-shadow:0 20px 80px #173a3233}
+.save-confirmation::backdrop{background:#173a3270}
+.save-confirmation .saved-check{display:grid;place-items:center;border-radius:50%;width:44px;height:44px;background:var(--rl-selected);color:var(--rl-brand);font-size:24px;margin-bottom:20px}
+.save-confirmation h2{margin-bottom:12px}.save-confirmation p{line-height:1.7;margin-bottom:24px}.save-confirmation button{width:100%}
+@media(max-width:650px){.model-settings .local-decider-settings .card-heading>.secondary{width:100%}}
+/* Uniform service rows keep status, actions and dividers in the same positions. */
+.sidebar{overflow-y:auto}
+.sidebar .system{display:block;margin-top:32px;padding-top:16px}
+.system-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 10px;margin-bottom:4px}
+.system-heading h2{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--rl-text-muted);line-height:1.5}
+.status-refresh,.status-edit{display:grid;place-items:center;width:36px;min-width:36px;min-height:44px;padding:0;background:transparent;color:var(--rl-brand);border-radius:6px}
+.status-refresh:hover,.status-edit:hover{background:var(--rl-selected)}
+.status-refresh.refreshing svg{animation:spin 1s linear infinite}
+.system-services{list-style:none;padding:0;margin:0 10px}
+.system .service-status{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0;padding:16px 0;border-bottom:1px solid var(--rl-border)}
+.system .service-status:last-child{border-bottom:0}
+.service-copy{min-width:0;flex:1}
+.service-label{display:block;color:var(--rl-ink);font-size:12px;line-height:1.6}
+.service-state{display:flex;align-items:center;gap:6px;margin-top:6px;color:var(--rl-text-muted);font-size:11px;line-height:1.5}
+.service-state i{flex:none;margin:0}
+.sidebar-social{display:flex;gap:8px;margin-top:auto;padding:24px 2px 0}
+.sidebar-social a{display:grid;place-items:center;width:44px;height:44px;border-radius:6px;color:var(--rl-text-muted);text-decoration:none}
+.sidebar-social a:hover{color:var(--rl-brand);background:var(--rl-selected)}
+@media(max-width:650px){.sidebar .system{margin-top:20px;padding-top:12px}.system-heading{padding:0;margin-bottom:4px}.system-services{margin:0}.sidebar-social{padding-top:12px}.system .service-status{padding:12px 0}}

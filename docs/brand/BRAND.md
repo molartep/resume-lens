@@ -1,7 +1,7 @@
 # ResumeLens — Brand Identity & Product UI Manual
 
 **Version:** 1.0 (proposed identity)  
-**Date:** 2026-11-18  
+**Date:** 2026-11-19\
 **Status:** Design specification for review; not yet deployed  
 **Source of truth for current UI:** [`client/src/styles.css`](https://github.com/molartep/resume-lens/blob/main/client/src/styles.css), [`client/src/main.tsx`](https://github.com/molartep/resume-lens/blob/main/client/src/main.tsx), and [`README.md`](https://github.com/molartep/resume-lens/blob/main/README.md).
 
@@ -149,7 +149,10 @@ Maintain the existing light, calm desktop shell: white sidebar, neutral canvas, 
 
 ### 5.3 Forms, configuration, and density
 
-- Explicit labels above inputs, supporting help below; do not use placeholder as sole label.
+- Explicit labels above inputs; do not use placeholder as sole label. Keep at least **8 px** between a label, any supporting help, and its input, text box, or dropdown.
+- **Every dropdown must give the arrow breathing room on its right:** inset the arrow **16 px** from the right border, use a **16 px** arrow, and reserve **48 px** of right-side text padding so text cannot touch the arrow. Apply the same rule to settings, model selectors, history, saved resumes, and dimension controls. Keep native select semantics and keyboard behavior.
+- Leave at least **16 px** between a control and the following explanatory text or action. Leave **24 px** between field groups and between a section title and its first field. Adjacent components must never touch: for example, the **Admin token** input and **Unlock model settings** button require a visible 16 px gap.
+- Keep action rows separated from fields by **24 px**, with at least **12 px** between buttons. Wrap controls and actions on narrow screens instead of compressing these gaps. Use the shared spacing tokens in `client/public/brand/tokens.css`; compact layouts must preserve label and arrow clearance.
 - Explain every evaluation dimension, rubric, threshold, and source of configuration in plain language.
 - Validate inline, keep prior values on error, and support keyboard-only operation.
 - For advanced JSON/configuration editing, offer examples, syntax validation, and escape hatches to restore an earlier valid configuration.

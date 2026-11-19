@@ -11,7 +11,7 @@ export function createApp(deps:Dependencies){
  app.use('/api',(req,_res,next)=>{
   if(['POST','DELETE','PUT','PATCH'].includes(req.method)){
    const origin=req.get('origin');const host=req.get('host');
-   if(req.get('sec-fetch-site')==='cross-site'||(origin&&!([`http://${host}`,'http://127.0.0.1:5173','http://localhost:5173'].includes(origin))))return next(new AppError(403,'ORIGIN','Only local application requests are allowed.'));
+   if(req.get('sec-fetch-site')==='cross-site'||(origin&&!([`http://${host}`,'http://127.0.0.1:5173','http://localhost:5173','http://127.0.0.1:5174','http://localhost:5174'].includes(origin))))return next(new AppError(403,'ORIGIN','Only local application requests are allowed.'));
   }
   next();
  });

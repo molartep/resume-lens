@@ -1,3 +1,5 @@
+import {usesGeminiDecisions} from '../../../shared/models';
+import {geminiDecisionsRequest,normalizeGeminiDecisions} from './geminiDecisions';
 import type {ModelProfile} from '../../../shared/models';
 import type {Screening,ScreeningConfig} from '../../../shared/types';
 import {providerRequest} from './http';
@@ -10,7 +12,9 @@ export function authHeaders(p:ModelProfile,key:string):Record<string,string>{
 export async function analyzeHosted(text:string,config:ScreeningConfig,p:ModelProfile,key:string):Promise<{screening:Screening;latencyMs:number}>{
  const started=performance.now();const headers={'Content-Type':'application/json',...authHeaders(p,key)};
  let raw:any;let result:Screening;
- if(p.provider==='openai-decisions'){
+ if(usesGeminiDecisions(p)){
+  raw=await providerRequest(`${p.baseUrl}/${p.apiVersion}/decisions`,{method:'POST',headers,body:JSON.stringify(geminiDecisionsRequest(text,config,p))},p.timeoutMs);result=normalizeGeminiDecisions(raw,p,config);
+ }else if(p.provider==='openai-decisions'){
   raw=await providerRequest(`${p.baseUrl}/v1/decisions`,{method:'POST',headers,body:JSON.stringify(decisionsRequest(text,config,p))},p.timeoutMs);result=normalizeDecisions(raw,p,config);
  }else{
   const prompt=evaluationPrompt(text,config);const schema=outputSchema(config);let url:string;let body:unknown;
