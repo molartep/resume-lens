@@ -15,3 +15,6 @@ storage/
 # Private model connection profiles and API keys
 config/model-connections.json
 config/model-connections.json.*.tmp
+
+# Live evaluation outputs are local only; never upload as CI artifacts.
+evaluations/results/live/

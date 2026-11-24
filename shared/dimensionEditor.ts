@@ -41,12 +41,13 @@ export function dimensionJson(q:Dimension):string {
 
 export function parseDimensionJson(text:string,order:number):Dimension {
  let value;try{value=JSON.parse(text);}catch{throw new Error('Enter valid JSON. Check commas, quotes and braces.');}
- if(!value||typeof value!=='object'||Array.isArray(value)||typeof value.label!=='string'||!['noul','choice','score'].includes(value.type))throw new Error('Use a dimension JSON object with a display label and valid question type.');
+ if(!value||typeof value!=='object'||Array.isArray(value)||typeof value.label!=='string'||!['noul','choice','score','experience'].includes(value.type))throw new Error('Use a dimension JSON object with a display label and valid question type.');
  if(typeof value.instructions!=='string'&&(!value.instructions||typeof value.instructions!=='object'||Array.isArray(value.instructions)))throw new Error('Instructions must be text or a JSON object.');
+ if(value.type==='experience'&&(value.criteria!==undefined||value.experienceMonths!==undefined))throw new Error('Deterministic experience has no model rubric or criteria.');
  if(value.type==='score'&&(!Array.isArray(value.criteria)||!value.criteria.every((v:unknown)=>typeof v==='string')))throw new Error('Score criteria must be an array of text levels.');
  if((value.type==='choice'||value.type==='noul'&&value.criteria!==undefined)&&(!value.criteria||typeof value.criteria!=='object'||Array.isArray(value.criteria)||!Object.values(value.criteria).every(v=>typeof v==='string')))throw new Error('Category criteria must be a JSON object with text descriptions.');
  if(value.categoryLabels!==undefined&&(!value.categoryLabels||typeof value.categoryLabels!=='object'||Array.isArray(value.categoryLabels)||!Object.values(value.categoryLabels).every(v=>typeof v==='string')))throw new Error('Category labels must be a JSON object with text labels.');
  const threshold=value.reviewThreshold;
- if(threshold!==undefined&&(!threshold||typeof threshold!=='object'||Array.isArray(threshold)||!['yes_probability','top_probability','category_probability','expected_score','confidence'].includes(threshold.metric)||!['below','above'].includes(threshold.operator)||typeof threshold.value!=='number'||!Number.isFinite(threshold.value)||threshold.category!==undefined&&typeof threshold.category!=='string'))throw new Error('Review threshold needs a valid metric, below/above operator and numeric value.');
+ if(threshold!==undefined&&(!threshold||typeof threshold!=='object'||Array.isArray(threshold)||!['yes_probability','top_probability','category_probability','expected_score','confidence','documented_years'].includes(threshold.metric)||!['below','above'].includes(threshold.operator)||typeof threshold.value!=='number'||!Number.isFinite(threshold.value)||threshold.category!==undefined&&typeof threshold.category!=='string'))throw new Error('Review threshold needs a valid metric, below/above operator and numeric value.');
  return {...value,instructions:instructionsText(value.instructions),order} as Dimension;
 }

@@ -1,3 +1,4 @@
+import {modelEntries} from '../../../shared/types';
 import type {ModelProfile} from '../../../shared/models';
 import type {ScreeningConfig,Screening} from '../../../shared/types';
 import {parseDeciderResponse} from '../deciderService';
@@ -5,7 +6,7 @@ import {AppError} from '../errors';
 import {reviewPolicy,invalid} from './protocol';
 // https://aistudio.google.com/docs/decisions-api — v1beta REST contract.
 export function geminiDecisionsRequest(text:string,config:ScreeningConfig,p:ModelProfile){
- const questions=Object.entries(config);
+ const questions=modelEntries(config);
  const limit=()=>new AppError(400,'MODEL_LIMIT','Gemini Decisions requires 1–1,000 questions, keys of 1–64 ASCII letters/digits/underscores/hyphens, and 2–255 options or rubric levels.');
  if(questions.length<1||questions.length>1000)throw limit();
  return {model:p.model,input:text,questions:Object.fromEntries(questions.map(([id,q])=>{
@@ -22,7 +23,7 @@ export function geminiDecisionsRequest(text:string,config:ScreeningConfig,p:Mode
 }
 export function normalizeGeminiDecisions(raw:any,p:ModelProfile,config:ScreeningConfig):Screening{
  if(!raw?.answers||typeof raw.answers!=='object'||Array.isArray(raw.answers))throw invalid();
- for(const [id,q] of Object.entries(config)){
+ for(const [id,q] of modelEntries(config)){
   const a=raw.answers[id];if(!a||a.type!==q.type)throw invalid();
   if(q.type==='noul'&&(typeof a.noul!=='number'||a.noul<.01||a.noul>.99||!Number.isFinite(a.noul)||typeof a.confidence!=='number'||!Number.isFinite(a.confidence)||a.confidence<0||a.confidence>1))throw invalid();
  }

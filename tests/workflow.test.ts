@@ -8,11 +8,13 @@ import {resumeFileStore} from '../server/services/resumeFileService';
 import {createApp} from '../server/app';
 import {candidateRepository} from '../server/repositories/candidateRepository';
 import {analysisRepository} from '../server/repositories/analysisRepository';
+import {calculateExperience} from '../shared/experience';
 import {screeningConfig} from '../config/screening.config';
 import type {Dependencies} from '../server/routes/api';
 import type {Answer,ScreeningConfig} from '../shared/types';
 function mockAnswers(config:ScreeningConfig){return Object.fromEntries(Object.entries(config).map(([id,q]):[string,Answer]=>{
- if(q.type==='noul')return [id,{type:'noul',noul:.5}];
+ if(q.type==='experience')return [id,{type:'experience',experience:calculateExperience('',config,'2026-11-24')}];
+  if(q.type==='noul')return [id,{type:'noul',noul:.5}];
  const keys=q.type==='choice'?Object.keys(q.criteria):q.criteria.map((_,i)=>String(i));const probabilities=Object.fromEntries(keys.map(k=>[k,1/keys.length]));
  return q.type==='choice'?[id,{type:'choice',choice:keys[0],probabilities,confidence:0}]:[id,{type:'score',score:(keys.length-1)/2,probabilities,legend:Object.fromEntries(q.criteria.map((v,i)=>[String(i),v])),confidence:0}];
  }));}

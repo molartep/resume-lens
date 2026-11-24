@@ -1,48 +1,57 @@
 import 'dotenv/config';
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
-import {performance} from 'node:perf_hooks';
+import {createHash} from 'node:crypto';
 import {screeningConfig} from '../config/screening.config';
-import {buildRequest,resolveConfig} from '../server/services/configService';
-import {checkDeciderHealth,deciderUrl,parseDeciderResponse} from '../server/services/deciderService';
+import {resolveConfig} from '../server/services/configService';
+import {parseDeciderResponse} from '../server/services/deciderService';
 import {defaultSettings} from '../server/services/settingsService';
-import {assess,compare,fixture,percentile,type Case} from '../evaluations/metrics';
-const dataset=JSON.parse(await readFile('evaluations/dataset.json','utf8')) as {asOf:string;cases:Case[]};
-const repeats=Number(process.env.EVAL_REPEATS||3);
-if(!Number.isInteger(repeats)||repeats<2||repeats>10)throw new Error('EVAL_REPEATS must be 2–10.');
+import {modelRepository} from '../server/repositories/modelRepository';
+import {modelService} from '../server/services/modelService';
+import {assess,fixture,type Case} from '../evaluations/metrics';
+import {evaluationVersion,runLive,validateBudget} from '../evaluations/runner';
+import {calculateExperience} from '../shared/experience';
+const args=process.argv.slice(2);
+const live=args.includes('--live');
+const allowed=new Set(['--live','--max-requests','--max-tokens','--max-seconds','--max-output-tokens','--repeats','--profiles']);
+for(let i=0;i<args.length;i++){if(!allowed.has(args[i]))throw new Error('Unknown evaluation option');if(args[i]!=='--live'){if(!args[i+1]||args[i+1].startsWith('--'))throw new Error('Missing option value');i++;}}
+const option=(key:string)=>{const i=args.indexOf(key);return i<0?undefined:args[i+1];};
+if(live&&process.env.CI)throw new Error('Live evaluations are disabled in CI.');
+const bytes=await readFile('evaluations/dataset.json');const digest=createHash('sha256').update(bytes).digest('hex');
+// Pin the reviewed public synthetic corpus. A local file or edited/private corpus
+// cannot accidentally be uploaded or snapshotted by this runner.
+if(digest!=='f94ae7d225fcde36ff71baf26c7958ef8c36999b5fd8dff926c4df061ee4944c')throw new Error('Synthetic corpus changed: review its privacy and update the pinned digest before evaluation.');
+const dataset=JSON.parse(bytes.toString()) as {version:number;synthetic:boolean;asOf:string;cases:Case[]};
+if(dataset.synthetic!==true)throw new Error('Only the reviewed synthetic corpus is supported');
 const config=resolveConfig(screeningConfig,new Date(`${dataset.asOf}T12:00:00Z`),'America/Bogota');
-for(const test of dataset.cases)for(const expectation of Object.values(test.expectedEvidence))for(const quote of expectation.quotes)if(!test.resume.includes(quote))throw new Error(`Invalid evidence span in ${test.id}`);
-const settings=defaultSettings();const health=await checkDeciderHealth(settings);
-const runs:any[]=[];
-if(health.online){
- for(const test of dataset.cases)for(let repeat=0;repeat<repeats;repeat++){
-  const started=performance.now();let raw:unknown;let rawBody:string|undefined;let status:number|null=null;
-  try{
-   const response=await fetch(`${deciderUrl()}/v1/systemone`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(buildRequest(test.resume,config)),signal:AbortSignal.timeout(settings.decider.timeoutMs)});status=response.status;
-   if(!response.ok)throw new Error(`HTTP ${status}`);
-   rawBody=await response.text();raw=JSON.parse(rawBody);const screening=parseDeciderResponse(raw,config);
-   runs.push({caseId:test.id,repeat,status,latencyMs:performance.now()-started,valid:true,screening,assessment:assess(test,screening)});
-  }catch(error){runs.push({caseId:test.id,repeat,status,latencyMs:performance.now()-started,valid:false,raw,rawBody,error:error instanceof Error?error.message:'Unknown failure'});}
-  console.log(`${test.id} ${repeat+1}/${repeats}: ${runs.at(-1).valid?'valid':'failed'}`);
- }
+const repeats=Number(option('--repeats')??3);
+if(!Number.isInteger(repeats)||repeats<2||repeats>10)throw new Error('Repeats must be 2–10');
+for(const test of dataset.cases)for(const expectation of Object.values(test.expectedEvidence))for(const quote of expectation.quotes)if(!test.resume.includes(quote))throw new Error('Invalid synthetic source span');
+const snapshot={evaluationVersion,generatedAt:new Date().toISOString(),rubric:config,evidence:{sha256:digest,...dataset}};
+await mkdir(live?'evaluations/results/live':'evaluations/results/fixtures',{recursive:true});
+if(!live){
+ const checks=dataset.cases.map(test=>{const result=parseDeciderResponse(fixture(test,config),config);const experience=calculateExperience(test.resume,config,dataset.asOf);return {caseId:test.id,assessment:assess(test,result),experience,experiencePass:!test.experience||Object.entries(test.experience).filter(([key])=>key!=='levelIndex'||config.years_of_experience?.type==='score').every(([key,value])=>experience[(key==='months'?'documentedMonths':key) as keyof typeof experience]===value)};});
+ const baseline=fixture(dataset.cases[0],config);
+ const mutants=[[],{model:'fixture',answers:{}},{...baseline,answers:{...baseline.answers,mentorship_demonstrated:{type:'noul',noul:2}}},{...baseline,answers:{...baseline.answers,years_of_experience:{type:'score',score:8}}},{approved:true,claim:'INJECTION_SUCCEEDED'}];
+ const rejections=mutants.map(raw=>{try{parseDeciderResponse(raw,config);return false;}catch{return true;}});
+ const report={...snapshot,mode:'fixtures',label:'Authored fixtures and validation probes only; no model quality, consistency or inference latency measured.',checks,rejections};
+ await writeFile('evaluations/results/fixtures/latest.json',JSON.stringify(report,null,2)+'\n');
+ if(checks.some(c=>c.assessment.passed!==c.assessment.total||!c.experiencePass)||rejections.some(r=>!r))process.exitCode=1;
+ console.log(`Fixture checks: ${checks.length}; rejection probes: ${rejections.filter(Boolean).length}/${rejections.length}. No live requests made.`);
+}else{
+ const budget=validateBudget({maxRequests:Number(option('--max-requests')),maxTokens:Number(option('--max-tokens')),maxSeconds:Number(option('--max-seconds')),maxOutputTokens:Number(option('--max-output-tokens'))});
+ if(budget.maxOutputTokens<256)throw new Error('Output token cap must be at least 256');
+ const repository=modelRepository();const service=modelService(repository);const catalog=await repository.list();
+ const selected=option('--profiles')?.split(',');
+ if(selected?.some(id=>!catalog.profiles.some(p=>p.id===id&&p.enabled)))throw new Error('Unknown or disabled evaluation profile');
+ const profiles=catalog.profiles.filter(p=>p.enabled&&(!selected||selected.includes(p.id))).map(p=>({...p,maxOutputTokens:Math.min(p.maxOutputTokens,budget.maxOutputTokens)}));
+ if(!profiles.length)throw new Error('No enabled evaluation profiles');
+ const result=await runLive(dataset.cases,config,profiles,repeats,budget,(test,p)=>service.decide(test.resume,config,{...defaultSettings(),inference:p}));
+ const report={...snapshot,mode:'live',...result,limitations:['Synthetic annotations are broad semantic proxies, not calibrated factuality, fairness or hiring suitability.','Missing evidence means unknown, not absent ability.','Token admission uses conservative estimates, not a currency or billed-token guarantee. Local Decider manages its own output limit. No retries are made.','Latency includes adapter parsing and deterministic experience checks. Failure latency is separate.','Native distributions and generated estimates have separate provenance; neither establishes calibration.']};
+ const filename=`evaluations/results/live/${Date.now()}`;
+ await writeFile(`${filename}.json`,JSON.stringify(report,null,2)+'\n',{mode:0o600});
+ const fmt=(n:number|null)=>n===null?'Not measured':`${(n*100).toFixed(1)}%`;
+ const md=`# Live synthetic evaluation\n\nEvaluation ${evaluationVersion}; ${result.status}; ${result.attempts} attempts; ${result.skipped} skipped by budget.\n\n| Provider / model | Probability source | Valid structure | Evidence adherence | Unsupported positives | Agreement | Max drift | p50 / p95 ms | Transport failures |\n|---|---|---|---|---|---|---|---|---|\n${result.providers.map(p=>`| ${p.model.provider} / ${p.model.model} | ${p.probabilitySources.join(', ')||'Not measured'} | ${fmt(p.structuredValidityRate)} | ${fmt(p.evidenceAdherence)} | ${fmt(p.unsupportedPositiveRate)} | ${fmt(p.consistency.topAgreement)} | ${p.consistency.maxProbabilityDrift??'Not measured'} | ${p.latencyMs.p50===null?'Not measured':`${p.latencyMs.p50.toFixed(0)} / ${p.latencyMs.p95!.toFixed(0)}`} | ${p.transportFailures} |`).join('\n')}\n\n${report.limitations.map(x=>'- '+x).join('\n')}\n`;
+ await writeFile(`${filename}.md`,md,{mode:0o600});console.log(md);
+ if(result.skipped)process.exitCode=2;
+ if(result.providers.some(p=>p.runs.some(r=>r.kind!=='valid'||r.assessment!.passed!==r.assessment!.total)))process.exitCode=1;
 }
-const responses=runs.filter(r=>r.status!==null&&r.status>=200&&r.status<300);
-const valid=runs.filter(r=>r.valid);const pairs:any[]=[];
-for(const test of dataset.cases){const subset=valid.filter(r=>r.caseId===test.id);for(let i=1;i<subset.length;i++)pairs.push({caseId:test.id,...compare(subset[0].screening,subset[i].screening)});}
-const adversarialPairs=dataset.cases.filter(c=>c.pairWith).flatMap(c=>{const a=valid.find(r=>r.caseId===c.id),b=valid.find(r=>r.caseId===c.pairWith);return a&&b?[{caseId:c.id,baseline:c.pairWith,...compare(a.screening,b.screening)}]:[];});
-const baseline=fixture(dataset.cases[0],config);
-const mutants=[{name:'non-object JSON',raw:[]},{name:'missing dimensions',raw:{model:'fixture',answers:{}}},{name:'out-of-range probability',raw:{...baseline,answers:{...baseline.answers,mentorship_demonstrated:{type:'noul',noul:2}}}},{name:'malformed distribution',raw:{...baseline,answers:{...baseline.answers,career_progression:{type:'choice',choice:'unclear',confidence:.5,probabilities:{unclear:1}}}}},{name:'wrong answer type',raw:{...baseline,answers:{...baseline.answers,llm_experience:{type:'choice',choice:'yes',probabilities:{yes:1},confidence:1}}}},{name:'injected schema replacement',raw:{approved:true,overall_score:100,claim:'INJECTION_SUCCEEDED'}}];
-const rejectionChecks=mutants.map(({name,raw})=>{let rejected=false;try{parseDeciderResponse(raw,config);}catch{rejected=true;}return {name,rejected};});
-const validationTimes:number[]=[];const fixturePairs:ReturnType<typeof compare>[]=[];
-for(const test of dataset.cases){const samples=[];for(let n=0;n<repeats;n++){const input=fixture(test,config);const started=performance.now();const result=parseDeciderResponse(input,config);validationTimes.push(performance.now()-started);samples.push(result);}for(let i=1;i<samples.length;i++)fixturePairs.push(compare(samples[0],samples[i]));}
-const fixtureChecks=dataset.cases.map(test=>{const result=parseDeciderResponse(fixture(test,config),config);return {caseId:test.id,...assess(test,result)};});
-const sparse=dataset.cases.find(c=>c.id==='missing-experience')!;const unsupported=fixture(sparse,config);
-for(const id of Object.keys(sparse.expectedEvidence))unsupported.answers[id]={type:'noul',noul:.99};
-let unsupportedAccepted=false;try{parseDeciderResponse(unsupported,config);unsupportedAccepted=true;}catch{}
-const unsupportedProbe={acceptedByApplicationValidator:unsupportedAccepted,...assess(sparse,unsupported)};
-const sum=(key:string)=>valid.reduce((n,r)=>n+r.assessment[key],0);
-const report={generatedAt:new Date().toISOString(),screeningConfigSnapshot:config,dataset:{version:1,cases:dataset.cases.length,categories:[...new Set(dataset.cases.map(c=>c.category))],asOf:dataset.asOf},live:{status:health.online?'measured':'unavailable',reason:health.online?null:'Local Decider service was offline. No live model metrics were produced.',model:health.model??null,repeats,attempts:runs.length,validityRate:responses.length?valid.length/responses.length:null,responseCount:responses.length,requestSuccessRate:runs.length?valid.length/runs.length:null,evidenceCheckPassRate:sum('total')?sum('passed')/sum('total'):null,unsupportedPositiveRate:sum('opportunities')?sum('unsupported')/sum('opportunities'):null,injectionMarkerRate:valid.length?valid.filter(r=>r.assessment.injectionFollowed).length/valid.length:null,latencyMs:{p50:percentile(runs.map(r=>r.latencyMs),.5),p95:percentile(runs.map(r=>r.latencyMs),.95)},consistency:{pairCount:pairs.length,meanTopAgreement:pairs.length?pairs.reduce((n,p)=>n+p.topAgreement,0)/pairs.length:null,maxProbabilityDelta:pairs.length?Math.max(...pairs.map(p=>p.maxProbabilityDelta)):null},adversarialPairs,runs},deterministic:{label:'Authored fixtures and validator probes; these do not measure model quality or inference latency.',rejectionChecks,fixtureChecks,unsupportedProbe,fixtureMeasurements:{samples:validationTimes.length,structuredValidityRate:1,repeatedTopAgreement:fixturePairs.reduce((n,p)=>n+p.topAgreement!,0)/fixturePairs.length,validationOnlyLatencyMs:{p50:percentile(validationTimes,.5),p95:percentile(validationTimes,.95)},note:'Measured local validation of authored fixtures only; excludes inference, HTTP, parsing and queue wait. Repeated fixtures are intentionally deterministic.'}},limitations:['Unsupported-positive rate is a rubric-based proxy: probabilities >0.65 for unestablished qualifications, or technical depth above the annotated interval. It is not a full semantic factuality audit.','Missing evidence does not prove a qualification is absent. Unknown expectations allow probabilities through 0.65.','Current structured output has no required evidence citations or abstention for every dimension. Valid schema does not guarantee supported claims.','A tiny synthetic dataset does not establish production accuracy, fairness, or calibration.','Latency includes the local HTTP request and validation; it excludes cloud PDF parsing, UI and queue wait. No values are reported without real calls.']};
-await mkdir('evaluations/results',{recursive:true});await writeFile('evaluations/results/latest.json',JSON.stringify(report,null,2)+'\n');
-const fmt=(n:number|null)=>n===null?'Not measured':`${(n*100).toFixed(1)}%`;
-const md=`# Resume Lens synthetic evaluation\n\nGenerated: ${report.generatedAt}\n\n${dataset.cases.length} hand-authored cases; expected evidence spans, incomplete histories, ambiguous ownership, explicit negatives and three paired prompt injections. Fixed evaluation date: ${dataset.asOf}. Repeats per live case: ${repeats}.\n\n## Live model measurements\n\nStatus: **${report.live.status}**. ${report.live.reason??''}\n\n| Metric | Result |\n|---|---|\n| Structured-output validity | ${fmt(report.live.validityRate)} |\n| Evidence-bound checks | ${fmt(report.live.evidenceCheckPassRate)} |\n| Unsupported-positive proxy | ${fmt(report.live.unsupportedPositiveRate)} |\n| Repeated top-category agreement | ${fmt(report.live.consistency.meanTopAgreement)} |\n| HTTP latency p50 / p95 | ${report.live.latencyMs.p50===null?'Not measured':`${report.live.latencyMs.p50.toFixed(0)} / ${report.live.latencyMs.p95!.toFixed(0)} ms`} |\n\n## Deterministic application findings\n\nFixture benchmark: ${validationTimes.length} validations; 100% schema-valid; 100% repeated top-category agreement (authored deterministic inputs). Validation-only latency p50 **${percentile(validationTimes,.5)!.toFixed(3)} ms**, p95 **${percentile(validationTimes,.95)!.toFixed(3)} ms**. These are measured local validator timings, not inference latency or model consistency.\n\n- Invalid structured responses rejected: **${rejectionChecks.filter(c=>c.rejected).length}/${rejectionChecks.length}**.\n- Dataset and scorer self-checks: **${fixtureChecks.filter(c=>c.passed===c.total).length}/${fixtureChecks.length}** authored cases pass their annotation bounds. These are harness checks, not model accuracy.\n- **Unsupported positives are accepted when structurally valid:** the application validator accepted a deliberately false high-probability response on the incomplete skills-only resume (${unsupportedProbe.unsupported} flagged unsupported-positive opportunities). The app labels outputs as model probabilities and requires human evidence review, but does not enforce evidence provenance. Avoiding unsupported claims is therefore **not established**.\n\n## Limitations\n\n${report.limitations.map(x=>'- '+x).join('\n')}\n\nThe JSON report preserves every live result, error, latency and per-case check for inspection. Run \`npm run evaluate\` with the local Decider online to populate the live measurements.\n`;
-await writeFile('evaluations/results/latest.md',md);console.log(md);
-if(rejectionChecks.some(c=>!c.rejected)||fixtureChecks.some(c=>c.passed!==c.total))process.exitCode=1;

@@ -1,16 +1,18 @@
 import type {Answer,Dimension,ReviewThreshold} from './types';
 export function reviewMetrics(type:Dimension['type']){
- return type==='noul'?['yes_probability'] as const:type==='score'?['expected_score','confidence'] as const:['top_probability','category_probability','confidence'] as const;
+ return type==='experience'?['documented_years'] as const:type==='noul'?['yes_probability'] as const:type==='score'?['expected_score','confidence'] as const:['top_probability','category_probability','confidence'] as const;
 }
 export function reviewWarning(answer:Answer,threshold?:ReviewThreshold):string|null {
+ if(answer.type==='experience'&&!answer.experience.complete)return 'Employment dates are incomplete or ambiguous. Review the documented intervals manually.';
  if(!threshold)return null;
  let actual:number|undefined;let label='';let percent=true;
  switch(threshold.metric){
+  case 'documented_years':if(answer.type==='experience'){actual=answer.experience.documentedMonths/12;label='Documented years';percent=false;}break;
   case 'yes_probability':if(answer.type==='noul'){actual=answer.noul;label='Yes probability';}break;
   case 'top_probability':if(answer.type==='choice'){actual=Math.max(...Object.values(answer.probabilities));label='Highest category probability';}break;
   case 'category_probability':if(answer.type==='choice'){actual=answer.probabilities[threshold.category||''];label=`Probability for ${threshold.category}`;}break;
   case 'expected_score':if(answer.type==='score'){actual=answer.score;label='Expected level index';percent=false;}break;
-  case 'confidence':if(answer.type!=='noul'){actual=answer.confidence;label='Model confidence';}break;
+  case 'confidence':if(answer.type==='choice'||answer.type==='score'){actual=answer.confidence;label='Model confidence';}break;
  }
  if(actual===undefined||!Number.isFinite(actual))return 'The configured threshold cannot be evaluated. Review this result manually.';
  const violated=threshold.operator==='below'?actual<threshold.value:actual>threshold.value;

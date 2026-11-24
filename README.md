@@ -206,7 +206,9 @@ For previously saved analyses, current thresholds apply immediately only when in
 
 ## Synthetic evaluation and demo
 
-Run `npm run evaluate` to evaluate the 12-case synthetic dataset against the separately managed local Decider. The report separates live measurements from deterministic validator checks and keeps live metrics unavailable when the service is offline. See [evaluation methodology](evaluations/README.md) and [latest findings](evaluations/results/latest.md).
+Run `npm run evaluate` for offline synthetic fixture checks. Explicit, budget-bounded live runs use every enabled production provider adapter. Reports snapshot fictional evidence, rubric and model settings, distinguish native distributions from generated estimates, and measure semantic bounds, consistency, drift and latency. See [evaluation methodology and live command](evaluations/README.md). Live outputs are private local artifacts excluded from Git and CI.
+
+Years of Experience uses its own deterministic calculation type and is excluded from model requests. Overlapping calendar months count once; incomplete dates always require review. January 2021–December 2024 is 48 months (4 years), with no model score or probability distribution. Manual review thresholds use documented years. Historical SCORE analyses retain their original rubrics and indices.
 
 The silent [one-minute demo](demo/output/resume-lens-demo.mp4) shows the real application with fictional resumes and explicitly simulated provider responses. See [recording and reproduction notes](demo/README.md). The demo uses a separate temporary database and never reads candidate records from the normal workspace.
 

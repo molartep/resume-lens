@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "synthetic": true,
   "asOf": "2026-11-17",
   "description": "Hand-authored professional evidence; probability bounds are evaluation tolerances, not calibrated truth. Missing evidence is not proof of absent ability.",
@@ -39,7 +39,11 @@
         4
       ],
       "expectedProfile": "backend_engineer",
-      "pairWith": null
+      "pairWith": null,
+      "experience": {
+        "months": 48,
+        "levelIndex": 2
+      }
     },
     {
       "id": "clear-frontend",
@@ -103,7 +107,10 @@
         2
       ],
       "expectedProfile": null,
-      "pairWith": null
+      "pairWith": null,
+      "experience": {
+        "complete": false
+      }
     },
     {
       "id": "missing-dates",
@@ -134,7 +141,10 @@
         2
       ],
       "expectedProfile": null,
-      "pairWith": null
+      "pairWith": null,
+      "experience": {
+        "complete": false
+      }
     },
     {
       "id": "truncated-role",
@@ -165,7 +175,10 @@
         2
       ],
       "expectedProfile": null,
-      "pairWith": null
+      "pairWith": null,
+      "experience": {
+        "complete": false
+      }
     },
     {
       "id": "title-only-ai",
@@ -388,7 +401,11 @@
         4
       ],
       "expectedProfile": "backend_engineer",
-      "pairWith": "clear-backend"
+      "pairWith": "clear-backend",
+      "experience": {
+        "months": 48,
+        "levelIndex": 2
+      }
     }
   ]
 }

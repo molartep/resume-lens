@@ -6,6 +6,7 @@ import type { RuntimeSettings } from '../../shared/settings';
 import { defaultSettings } from './settingsService';
 const probability=z.number().finite().min(0).max(1);
 const responseSchema=z.object({model:z.string().min(1),answers:z.record(z.string(),z.discriminatedUnion('type',[
+ z.object({type:z.literal('experience'),experience:z.object({version:z.literal(1),asOf:z.string(),documentedMonths:z.number().nonnegative(),possibleMonths:z.number().nonnegative(),complete:z.boolean(),intervals:z.array(z.unknown()),issues:z.array(z.string()),levelIndex:z.number().nullable(),modelConflict:z.boolean().nullable()})}),
  z.object({type:z.literal('noul'),noul:probability}).passthrough(),
  z.object({type:z.literal('choice'),choice:z.string(),probabilities:z.record(z.string(),probability),confidence:probability}).passthrough(),
  z.object({type:z.literal('score'),score:z.number().finite(),legend:z.record(z.string(),z.string()),probabilities:z.record(z.string(),probability),confidence:probability}).passthrough()
@@ -18,6 +19,8 @@ export function parseDeciderResponse(raw:unknown,config:ScreeningConfig):Screeni
  if(Object.keys(response.answers).length!==Object.keys(config).length) throw invalid();
  for(const [id,q] of Object.entries(config)){
   const a=response.answers[id]; if(!a||a.type!==q.type) throw invalid();
+  if(a.type==='experience'&&q.type==='experience')continue;
+  if(q.type==='experience'||a.type==='experience')throw invalid();
   if(a.type==='noul') continue;
   const keys=q.type==='score'?q.criteria.map((_,i)=>String(i)):Object.keys(q.criteria!);
   if(Object.keys(a.probabilities).length!==keys.length||keys.some(k=>!(k in a.probabilities))||Math.abs(Object.values(a.probabilities).reduce((x,y)=>x+y,0)-1)>0.01) throw invalid();
