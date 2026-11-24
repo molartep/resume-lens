@@ -1,3 +1,4 @@
+import {Dropdown} from './Dropdown';
 import {ModelSettings} from './ModelSettings';
 import {SaveConfirmation} from './SaveConfirmation';
 import {useEffect,useState} from 'react';
@@ -26,7 +27,7 @@ export function Settings({onSaved,target}:Props){
    <div className="card-heading"><h2 id="document-processing-title">Document Processing</h2><span className="tag">LLAMAINDEX</span></div><p>Configure PDF extraction, upload limits and evidence review.</p>
    <fieldset disabled={busy}>
     <section className="settings-subsection"><h3>LlamaIndex parsing</h3><div className="settings-grid">
-     <label className="field">Parse tier<span>Choose the parsing speed and capability for future uploads.</span><select form={formId} value={draft.parser.tier} onChange={e=>update('parser','tier',e.target.value)}><option value="fast">Fast · rule-based</option><option value="cost_effective">Cost effective · balanced</option><option value="agentic">Agentic · AI parsing</option><option value="agentic_plus">Agentic plus · premium</option></select></label>
+     <label className="field">Parse tier<span>Choose the parsing speed and capability for future uploads.</span><Dropdown form={formId} value={draft.parser.tier} onValueChange={value=>update('parser','tier',value)}><option value="fast">Fast · rule-based</option><option value="cost_effective">Cost effective · balanced</option><option value="agentic">Agentic · AI parsing</option><option value="agentic_plus">Agentic plus · premium</option></Dropdown></label>
      <label className="field">Parser version<span>Use “latest” or a supported dated version for the selected tier.</span><input form={formId} value={draft.parser.version} onChange={e=>update('parser','version',e.target.value)} required pattern="latest|[0-9]{4}-[0-9]{2}-[0-9]{2}"/></label>
      {numberField('parser','timeoutMs','Parsing timeout (ms)',draft.parser.timeoutMs,10000,600000,'Total time for upload, job creation and polling.',1000)}{numberField('parser','pollIntervalMs','Polling interval (ms)',draft.parser.pollIntervalMs,500,10000,'Wait between checks of a pending parse job.',100)}
     </div><label className="field">Extraction instructions<span>{draft.parser.tier==='fast'?'Fast is rule-based; these instructions are preserved but not sent.':'Guide faithful extraction; preserve professional details and avoid personal-attribute inference.'}</span><textarea form={formId} rows={5} value={draft.parser.customPrompt} disabled={draft.parser.tier==='fast'} maxLength={5000} onChange={e=>update('parser','customPrompt',e.target.value)}/></label>

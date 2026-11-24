@@ -26,7 +26,7 @@ it('renders duration, model index and conflict as separate reviewable informatio
  const q=screeningConfig.years_of_experience;const answer={type:'score' as const,score:4,probabilities:{'0':0,'1':0,'2':0,'3':0,'4':1,'5':0},legend:Object.fromEntries(q.type==='score'?q.criteria.map((v,i)=>[String(i),v]):[]),confidence:1};
  const result=withExperience({model:'fixture',answers:{years_of_experience:answer}},'# Experience\nEngineer, Jan 2021–Dec 2024',screeningConfig,'2026-11-17');
  const html=renderToStaticMarkup(React.createElement(DimensionCard,{id:'years_of_experience',q,a:answer,experience:result.experience}));
- expect(html).toContain('48 months (4.00 years)');expect(html).toContain('Expected level index');expect(html).toContain('conflicts with documented duration');expect(html).toContain('Evidence line 2');
+ expect(html).toContain('4.00 years');expect(html).toContain('48 documented months');expect(html).toContain('Expected level index');expect(html).toContain('conflicts with documented duration');expect(html).toContain('Evidence line 2');
 });
 
 it('calculates the dedicated type locally without a rubric or provider',async()=>{

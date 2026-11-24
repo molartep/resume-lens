@@ -1,0 +1,6 @@
+import {useId,useState,type ReactNode} from 'react';
+export function InfoTooltip({label,children}:{label:string;children:ReactNode}){
+ const id=useId();const [open,setOpen]=useState(false),[hovered,setHovered]=useState(false),[focused,setFocused]=useState(false),[dismissed,setDismissed]=useState(false);
+ const visible=!dismissed&&(open||hovered||focused);
+ return <span className={`info-tooltip ${visible?'is-open':''}`} onPointerEnter={()=>{setHovered(true);setDismissed(false);}} onPointerLeave={()=>setHovered(false)} onFocus={()=>{setFocused(true);setDismissed(false);}} onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget)){setFocused(false);setOpen(false);}}}><button type="button" className="info-trigger" aria-label={label} aria-describedby={id} onClick={()=>{setOpen(!open);setDismissed(open);}} onKeyDown={event=>{if(event.key==='Escape'){event.stopPropagation();setOpen(false);setDismissed(true);}}}><svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="1.5"/><path d="M10 9v5M10 6v.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg></button><span role="tooltip" id={id} className="info-tooltip-content">{children}</span></span>;
+}

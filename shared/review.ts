@@ -1,4 +1,4 @@
-import type {Answer,Dimension,ReviewThreshold} from './types';
+import type {Answer,Dimension,ReviewThreshold,Screening,ScreeningConfig} from './types';
 export function reviewMetrics(type:Dimension['type']){
  return type==='experience'?['documented_years'] as const:type==='noul'?['yes_probability'] as const:type==='score'?['expected_score','confidence'] as const:['top_probability','category_probability','confidence'] as const;
 }
@@ -32,4 +32,13 @@ function matches(template:unknown,value:unknown):boolean{
 export function reviewPolicy(saved:Dimension,current?:Dimension):{threshold?:ReviewThreshold;source:string}{
  if(current&&current.type===saved.type&&matches(current.instructions,saved.instructions)&&matches(current.criteria,saved.criteria))return {threshold:current.reviewThreshold,source:'Current review threshold'};
  return {threshold:saved.reviewThreshold,source:'Threshold saved with this analysis'};
+}
+
+export function reviewMessages(answer:Answer,threshold?:ReviewThreshold,experience?:import('./experience').Experience):string[]{
+ const warning=reviewWarning(answer,threshold);const messages=warning?[warning]:[];
+ if(experience?.modelConflict)messages.push('Model experience index conflicts with documented duration. Review required.');
+ return messages;
+}
+export function analysisAlerts(screening:Screening,saved:ScreeningConfig,current:ScreeningConfig){
+ return Object.entries(saved).flatMap(([id,q])=>{const answer=screening.answers[id];if(!answer)return [];const policy=reviewPolicy(q,current[id]);return reviewMessages(answer,policy.threshold,id==='years_of_experience'?screening.experience:undefined).map(message=>({dimension:id,label:q.label,message}));});
 }
