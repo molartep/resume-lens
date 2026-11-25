@@ -19,7 +19,7 @@ import { normalizeResume,suggestProfessionalEvidence,assertProfessionalEvidence 
 import type { ParsedResume, Screening, ScreeningConfig } from '../../shared/types';
 import type { candidateRepository } from '../repositories/candidateRepository';
 import type { analysisRepository } from '../repositories/analysisRepository';
-export type Dependencies={templates?:TemplateRepository;models?:ModelService;jobs?:JobService;candidates:ReturnType<typeof candidateRepository>;analyses:Pick<ReturnType<typeof analysisRepository>,'list'|'save'> & Partial<Pick<ReturnType<typeof analysisRepository>,'find'>>;pdfs?:ResumeFileStore;resumes?:ReturnType<typeof resumeRepository>;settings?:SettingsStore;parse:(pdf:Buffer,settings?:RuntimeSettings)=>Promise<ParsedResume>;decide:(text:string,config:ScreeningConfig,settings?:RuntimeSettings)=>Promise<{screening:Screening;latencyMs:number}>;parserConfigured:()=>boolean;health:(settings?:RuntimeSettings)=>Promise<{online:boolean;model?:string;status?:string;provider?:string}>};
+export type Dependencies={templates?:TemplateRepository;models?:ModelService;jobs?:JobService;candidates:ReturnType<typeof candidateRepository>;analyses:Pick<ReturnType<typeof analysisRepository>,'list'|'save'> & Partial<Pick<ReturnType<typeof analysisRepository>,'find'|'history'>>;pdfs?:ResumeFileStore;resumes?:ReturnType<typeof resumeRepository>;settings?:SettingsStore;parse:(pdf:Buffer,settings?:RuntimeSettings)=>Promise<ParsedResume>;decide:(text:string,config:ScreeningConfig,settings?:RuntimeSettings)=>Promise<{screening:Screening;latencyMs:number}>;parserConfigured:()=>boolean;health:(settings?:RuntimeSettings)=>Promise<{online:boolean;model?:string;status?:string;provider?:string}>};
 export function apiRouter(deps:Dependencies){
  const router=Router();
  if(deps.templates)router.use(templateRouter(deps.templates));
@@ -50,6 +50,20 @@ export function apiRouter(deps:Dependencies){
  router.get('/candidates',async(_req,res)=>res.json(await deps.candidates.list()));
  router.get('/candidates/:id',async(req,res)=>{const candidate=await deps.candidates.find(String(req.params.id));if(!candidate)throw new AppError(404,'NOT_FOUND','Candidate not found.');res.json(candidate);});
  router.get('/candidates/:id/analyses',async(req,res)=>{if(!await deps.candidates.find(String(req.params.id)))throw new AppError(404,'NOT_FOUND','Candidate not found.');res.json(await deps.analyses.list(String(req.params.id)));});
+ router.get('/analyses',async(req,res)=>{
+  const query=z.object({page:z.coerce.number().int().min(1).max(1000000).default(1),pageSize:z.coerce.number().int().min(1).max(100).default(25)}).strict().safeParse(req.query);
+  if(!query.success)throw new AppError(400,'INVALID_PAGINATION','Use a positive page number and a page size between 1 and 100.');
+  if(!deps.analyses.history)throw new AppError(503,'HISTORY_UNAVAILABLE','Analysis history is unavailable. Restart the application and try again.');
+  res.json(await deps.analyses.history(query.data.page,query.data.pageSize));
+ });
+ router.get('/analyses/:id',async(req,res)=>{
+  if(!z.string().uuid().safeParse(req.params.id).success)throw new AppError(404,'ANALYSIS_NOT_FOUND','This saved analysis could not be found.');
+  const analysis=await deps.analyses.find?.(String(req.params.id));
+  if(!analysis)throw new AppError(404,'ANALYSIS_NOT_FOUND','This saved analysis could not be found.');
+  const candidate=await deps.candidates.find(analysis.candidateId);
+  if(!candidate)throw new AppError(404,'NOT_FOUND','The candidate for this analysis could not be found.');
+  res.json({analysis,candidate});
+ });
  router.get('/analyses/:id/resume',async(req,res)=>{
   if(!z.string().uuid().safeParse(req.params.id).success)throw new AppError(404,'PDF_NOT_FOUND','Resume PDF not found.');
   const analysis=await deps.analyses.find?.(String(req.params.id));

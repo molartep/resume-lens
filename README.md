@@ -218,6 +218,16 @@ The separate [45-second promotional video](demo/promo/output/resume-lens-promo-4
 
 The complete [brand manual](docs/brand/BRAND.md), [supplied brand kit](docs/brand/resumelens-brand-kit.zip), and original assets are preserved under `docs/brand/`. The platform and both videos use the R-Lens logo, ResumeLens wordmark, and shared semantic palette. See [implementation and verification](docs/brand/IMPLEMENTATION.md).
 
+## Candidate workspace and Analysis History
+
+The candidate workspace shows the **Screening Template** used for each candidate's latest saved analysis, including its original revision. Historical records without template provenance display **Template not recorded** rather than inferring a template from current settings.
+
+Open **Analysis History** in the sidebar to browse every saved analysis across candidates, newest first. Each row shows the analysis date, candidate, screening template and revision, evaluation model, original resume filename and a **View analysis** link. Paging keeps the complete history accessible without loading resume text into the list. Multiple evaluations of one candidate remain separate rows. Template edits and deletion do not change the provenance shown for older analyses.
+
+Links use `#analyses/<analysis-id>` and open that exact saved result, including after reload or in a new browser tab. The candidate's other saved results remain available from the detail page's history selector. `#analysis-history` opens the global history page directly. Viewing history or a saved result never runs inference.
+
+`GET /api/analyses?page=1&pageSize=25` returns `{ items, total, page, pageSize }` with metadata only. Page sizes from 1 to 100 are supported. `GET /api/analyses/:id` returns the specific saved analysis and its candidate. Existing candidate-specific history and original-PDF endpoints are unchanged. No database migration is required for this view.
+
 ## Screening Templates
 
 Open **Screening Templates** in the sidebar to create, inspect, search, edit, duplicate or delete reusable screening criteria. Click a template title to edit its name, description, dimensions, order, instructions, rubrics and review thresholds. **Cancel** leaves the editor without saving; **Save template** persists the changes. Starter templates cover General Candidate Screening, Software Engineer, Data Engineer, Customer Success Manager and Operations Manager, each with a description of the criteria it includes. Customize criteria to the specific role before use.
@@ -228,9 +238,18 @@ Choose the model separately for each analysis. **Evaluation model** previews the
 
 ### Example criteria and review thresholds
 
-The five examples classify each dimension as **Clear evidence**, **Partial evidence**, or **Not documented**. Concrete actions and context matter more than titles, employer or school prestige, writing style, or tenure. Relevant project, volunteer and transferable experience count; qualitative outcomes are valid without numerical metrics. Missing resume detail calls for structured follow-up, not a conclusion about capability.
+Every example includes **CHOICE**, **NOUL**, **SCORE**, and deterministic **Years of Experience** dimensions. Concrete actions and context matter more than titles, employer or school prestige, writing style, or tenure. Relevant project, volunteer and transferable experience count for model-evaluated dimensions; qualitative outcomes are valid without numerical metrics. Missing resume detail calls for structured follow-up, not a conclusion about capability.
 
-Core dimensions flag **P(clear evidence) < 65%** for human review. Equality does not flag. This is an editable evidence-triage starting point, not a validated qualification cutoff or a calibrated probability of job performance. Review thresholds against representative examples and specific job requirements before operational use. The flag preserves all category distributions and never makes an employment decision. General learning/adaptation, software design scope, distributed processing, and customer commercial expansion are contextual dimensions with no automatic flag. No universal minimum years, portfolio sizes, quotas, certifications or particular vendor stack are imposed.
+| Type | Example purpose | Human-review behavior |
+|---|---|---|
+| CHOICE | Distinguish Clear evidence, Partial evidence and Not documented | Core dimensions flag P(clear evidence) below 65% |
+| NOUL | A focused yes/no check, such as testing practices, data validation or stakeholder coordination | Flag P(yes) below 65% |
+| SCORE | Depth of problem solving, implementation, reliability or customer/operational delivery | Four ordered evidence levels (0–3), flag expected level index below 2 |
+| Years of Experience | Total documented employment duration, calculated locally with overlapping months counted once | Missing, year-only or ambiguous dates always need review; no universal minimum years is assumed |
+
+The SCORE levels progress from **0: no documented example**, through **1: partial evidence** and **2: a concrete example**, to **3: the richer evidence specified for that dimension**. Each rubric defines its own role-relevant examples. The score is a dimension-level evidence index, not employment duration or aggregate suitability. Equality at a configured threshold does not flag.
+
+These are editable evidence-triage settings, not validated qualification cutoffs or calibrated probabilities of job performance. Review thresholds against representative examples and specific job requirements before operational use. Flags preserve all model distributions and never make an employment decision. General learning/adaptation, software design scope, distributed processing, and customer commercial expansion remain contextual CHOICE dimensions with no automatic flag. Add a documented-years threshold only when a specific role has a justified experience requirement. The built-in duration calculation measures total employment, not years in a particular specialty. No universal portfolio sizes, quotas, certifications or vendor stack are imposed.
 
 The examples focus on job-related tasks and observable evidence, following [OPM guidance on selecting competencies through job analysis](https://www.opm.gov/frequently-asked-questions/assessment-policy-faq/structured-interviews/how-do-i-select-the-competencies-or-content-areas-i-want-to-assess-with-the-structured-interview/). Their specific dimensions and numerical review setting are product examples, not validated assessments. Use structured interviews or suitable work samples to clarify incomplete evidence.
 
