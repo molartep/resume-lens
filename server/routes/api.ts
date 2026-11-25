@@ -1,3 +1,7 @@
+import {defaultConfiguration} from '../../shared/screeningConfiguration';
+import {executionConfiguration} from '../services/executionConfiguration';
+import {templateRouter} from './templates';
+import type {TemplateRepository} from '../repositories/templateRepository';
 import type {ModelService} from '../services/modelService';
 import {modelRouter} from './models';
 import type {JobService} from '../services/jobService';
@@ -10,19 +14,19 @@ import { z } from 'zod';
 import type { RuntimeSettings } from '../../shared/settings';
 import type { SettingsStore } from '../repositories/settingsRepository';
 import { defaultSettings,validateSettings,settingsEnvironment } from '../services/settingsService';
-import { validateConfig,resolveConfig } from '../services/configService';
 import { AppError } from '../services/errors';
 import { normalizeResume,suggestProfessionalEvidence,assertProfessionalEvidence } from '../services/resumeService';
 import type { ParsedResume, Screening, ScreeningConfig } from '../../shared/types';
 import type { candidateRepository } from '../repositories/candidateRepository';
 import type { analysisRepository } from '../repositories/analysisRepository';
-export type Dependencies={models?:ModelService;jobs?:JobService;candidates:ReturnType<typeof candidateRepository>;analyses:Pick<ReturnType<typeof analysisRepository>,'list'|'save'> & Partial<Pick<ReturnType<typeof analysisRepository>,'find'>>;pdfs?:ResumeFileStore;resumes?:ReturnType<typeof resumeRepository>;settings?:SettingsStore;parse:(pdf:Buffer,settings?:RuntimeSettings)=>Promise<ParsedResume>;decide:(text:string,config:ScreeningConfig,settings?:RuntimeSettings)=>Promise<{screening:Screening;latencyMs:number}>;parserConfigured:()=>boolean;health:(settings?:RuntimeSettings)=>Promise<{online:boolean;model?:string;status?:string;provider?:string}>};
+export type Dependencies={templates?:TemplateRepository;models?:ModelService;jobs?:JobService;candidates:ReturnType<typeof candidateRepository>;analyses:Pick<ReturnType<typeof analysisRepository>,'list'|'save'> & Partial<Pick<ReturnType<typeof analysisRepository>,'find'>>;pdfs?:ResumeFileStore;resumes?:ReturnType<typeof resumeRepository>;settings?:SettingsStore;parse:(pdf:Buffer,settings?:RuntimeSettings)=>Promise<ParsedResume>;decide:(text:string,config:ScreeningConfig,settings?:RuntimeSettings)=>Promise<{screening:Screening;latencyMs:number}>;parserConfigured:()=>boolean;health:(settings?:RuntimeSettings)=>Promise<{online:boolean;model?:string;status?:string;provider?:string}>};
 export function apiRouter(deps:Dependencies){
  const router=Router();
+ if(deps.templates)router.use(templateRouter(deps.templates));
  if(deps.models)router.use(modelRouter(deps.models));
  let inMemorySettings=defaultSettings();
  const store=deps.settings||{get:async()=>structuredClone(inMemorySettings),save:async(value:RuntimeSettings)=>{inMemorySettings=structuredClone(value);return structuredClone(value);}};
- const pending=new Map<string,{parsed:ParsedResume;filename:string;pdfKey?:string;resumeId?:string;expires:number}>();
+ const pending=new Map<string,{parsed:ParsedResume;filename:string;pdfKey?:string;resumeId?:string;expires:number;execution?:Awaited<ReturnType<typeof executionConfiguration>>}>();
  let busy=false; // Limit memory and avoid overlapping calls to the single model.
  const cleanup=()=>{if(busy)return;for(const [id,item] of pending)if(item.expires<Date.now()){pending.delete(id);if(item.pdfKey&&!item.resumeId)void deps.pdfs?.discardDraft(item.pdfKey).catch(()=>console.error('Could not remove expired PDF draft.'));}};
  const timer=setInterval(()=>{cleanup();if(!busy)void deps.pdfs?.cleanupDrafts().catch(()=>console.error('Could not clean PDF drafts.'));},60000);timer.unref();
@@ -38,6 +42,7 @@ export function apiRouter(deps:Dependencies){
   const [decider,database]=await Promise.all([deps.health(settings),deps.candidates.health().then(()=>true).catch(()=>false)]);
   res.json({llamaIndex:deps.parserConfigured()?'Configured':'Error',decider:decider.online?(decider.status==='ready'?'Ready':'Online'):'Offline',database:database?'Connected':'Error',model:decider.model,analysisProvider:decider.provider,config:config?'Valid':'Error'});
  });
+ router.get('/screening-configuration',async(_req,res)=>{const settings=await store.get();const catalog=await deps.models?.repository.list();const profile=catalog?.profiles.find(p=>p.id===catalog.activeProfileId);res.json(defaultConfiguration(settings.screeningConfig,settings.workflow.timezone,profile));});
  router.get('/config',async(_req,res)=>res.json((await store.get()).screeningConfig));
  router.put('/config',async(req,res)=>{if(busy)throw new AppError(409,'BUSY','Wait for the current resume operation before changing dimensions.');busy=true;try{const settings=await store.get();const value=validateSettings({...settings,screeningConfig:req.body});await store.save(value);res.json(value.screeningConfig);}finally{busy=false;}});
  router.get('/settings',async(_req,res)=>res.json({settings:await store.get(),environment:settingsEnvironment()}));
@@ -109,7 +114,7 @@ export function apiRouter(deps:Dependencies){
    res.json({token,filename,resumeId,parsedResume:parsed,suggestedEvidence:suggestProfessionalEvidence(parsed.text),expiresInMinutes:settings.workflow.draftExpiryMinutes});
   }finally{if(req.file)req.file.buffer=Buffer.alloc(0);busy=false;}
  });
- const analysisBody=z.object({token:z.string().uuid(),evidence:z.string().trim().min(20).max(30000),reviewed:z.literal(true),candidateId:z.string().uuid().optional(),name:z.string().trim().min(1).max(120)}).strict();
+ const analysisBody=z.object({token:z.string().uuid(),evidence:z.string().trim().min(20).max(30000),reviewed:z.literal(true),candidateId:z.string().uuid().optional(),name:z.string().trim().min(1).max(120),configuration:z.unknown().optional(),templateProvenance:z.unknown().optional()}).strict();
  router.post('/resumes/analyze',async(req,res)=>{
   if(typeof req.body?.name!=='string'||!req.body.name.trim()||req.body.name.trim().length>120)throw new AppError(400,'DISPLAY_NAME_REQUIRED','Enter a candidate display name between 1 and 120 characters.');
   const body=analysisBody.safeParse(req.body);if(!body.success)throw new AppError(400,'REVIEW_REQUIRED','Review professional evidence (20–30,000 characters) and confirm that personal and sensitive information is removed.');
@@ -117,9 +122,8 @@ export function apiRouter(deps:Dependencies){
    try{assertProfessionalEvidence(body.data.evidence);}catch(error){throw new AppError(400,'PERSONAL_INFORMATION',(error as Error).message);}
    if(body.data.candidateId&&!await deps.candidates.find(body.data.candidateId))throw new AppError(404,'NOT_FOUND','Candidate not found.');
    const savedSettings=await store.get();
-   const settings=deps.models?await deps.models.snapshot(savedSettings):savedSettings;
-   const config=resolveConfig(validateConfig(settings.screeningConfig),new Date(),settings.workflow.timezone);
-   const job=deps.jobs.analyze(body.data,settings,config);
+   const {settings,config,execution}=await executionConfiguration(deps,savedSettings,body.data.configuration,body.data.templateProvenance);
+   const job=deps.jobs.analyze(body.data,settings,config,execution);
    res.status(202).location(`/api/jobs/${job.id}`).json(job);return;
   }
   cleanup();const draft=pending.get(body.data.token);if(!draft)throw new AppError(410,'DRAFT_EXPIRED','This resume draft expired. Upload the PDF again.');
@@ -128,14 +132,13 @@ export function apiRouter(deps:Dependencies){
   busy=true;
   try{
    const savedSettings=await store.get();
-   const settings=deps.models?await deps.models.snapshot(savedSettings):savedSettings;
-   const config=resolveConfig(validateConfig(settings.screeningConfig),new Date(),settings.workflow.timezone);
+   const {settings,config,execution}=draft.execution??=await executionConfiguration(deps,savedSettings,body.data.configuration,body.data.templateProvenance);
    if(body.data.candidateId&&!await deps.candidates.find(body.data.candidateId))throw new AppError(404,'NOT_FOUND','Candidate not found.');
    if(!(await deps.health(settings)).online)throw new AppError(503,'MODEL_OFFLINE','The selected analysis model is unavailable. Check its connection in Settings.');
    const {screening,latencyMs}=await deps.decide(body.data.evidence,config,settings);
    if(draft.pdfKey&&!draft.resumeId)await deps.pdfs!.retain(draft.pdfKey);
    let saved:Awaited<ReturnType<Dependencies['analyses']['save']>>;
-   try{saved=await deps.analyses.save({candidateId:body.data.candidateId,name:body.data.name,resumeFilename:draft.filename,resumePdfKey:draft.pdfKey,resumeDocumentId:draft.resumeId,parsedResume:draft.parsed,evidence:body.data.evidence,screening,config,latencyMs});}
+   try{saved=await deps.analyses.save({candidateId:body.data.candidateId,name:body.data.name,resumeFilename:draft.filename,resumePdfKey:draft.pdfKey,resumeDocumentId:draft.resumeId,parsedResume:draft.parsed,evidence:body.data.evidence,screening,config,executionConfiguration:execution,latencyMs});}
    catch(error){if(draft.pdfKey&&!draft.resumeId)await deps.pdfs!.discardSaved(draft.pdfKey);throw error;}
    const {candidate,analysis}=saved;
    if(draft.pdfKey&&!draft.resumeId)await deps.pdfs!.discardDraft(draft.pdfKey).catch(()=>console.error('Could not remove completed PDF draft.'));

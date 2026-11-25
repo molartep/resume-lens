@@ -1,3 +1,4 @@
+import {templateRepository} from './repositories/templateRepository';
 import {modelRepository} from './repositories/modelRepository';
 import {modelService} from './services/modelService';
 import 'dotenv/config';
@@ -15,7 +16,8 @@ import { analysisRepository } from './repositories/analysisRepository';
 import { parseResume,parserConfigured } from './services/llamaIndexService';
 const pdfs=resumeFileStore();await pdfs.cleanupDrafts();
 const models=modelService(modelRepository());
-const dependencies:Dependencies={models,pdfs,resumes:resumeRepository(prisma),settings:settingsRepository(),candidates:candidateRepository(prisma),analyses:analysisRepository(prisma),parse:parseResume,decide:models.decide,parserConfigured,health:models.health};
+const templates=templateRepository(prisma);await templates.initialize();
+const dependencies:Dependencies={templates,models,pdfs,resumes:resumeRepository(prisma),settings:settingsRepository(),candidates:candidateRepository(prisma),analyses:analysisRepository(prisma),parse:parseResume,decide:models.decide,parserConfigured,health:models.health};
 await mkdir('storage',{recursive:true,mode:0o700});
 const queue=new JobQueue('storage/jobs.sqlite');
 await chmod('storage/jobs.sqlite',0o600);

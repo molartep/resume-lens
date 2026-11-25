@@ -1,1 +1,1 @@
-export class AppError extends Error {constructor(public status:number,public code:string,message:string,public retryAfterMs?:number){super(message);}}
+export {AppError} from '../../shared/errors';

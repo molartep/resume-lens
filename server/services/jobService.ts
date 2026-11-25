@@ -1,3 +1,4 @@
+import type {ExecutionConfiguration} from '../../shared/screeningConfiguration';
 import {modelTemplate} from '../../shared/models';
 import {deciderUrl} from './deciderService';
 import type {Dependencies} from '../routes/api';
@@ -32,7 +33,7 @@ export function jobService(queue:JobQueue,deps:Dependencies){
     queue.saveDraft(job.id,{parsed,filename,pdfKey,resumeId:document.id,expires},expires);
     result={token:job.id,filename,resumeId:document.id,parsedResume:parsed,suggestedEvidence:suggestProfessionalEvidence(parsed.text),expiresInMinutes:settings.workflow.draftExpiryMinutes};
    }else{
-    const {input,draft,settings,config}=job.payload as {input:AnalysisInput;draft:DurableDraft;settings:RuntimeSettings;config:ScreeningConfig};
+    const {input,draft,settings,config,execution}=job.payload as {execution?:ExecutionConfiguration;input:AnalysisInput;draft:DurableDraft;settings:RuntimeSettings;config:ScreeningConfig};
     // Jobs accepted before model profiles existed were always local Decider jobs.
     const executionSettings=deps.models&&!settings.inference?{...settings,inference:{...modelTemplate('local'),baseUrl:deciderUrl(),timeoutMs:settings.decider.timeoutMs}}:settings;
     progress(15,'Checking analysis model availability');
@@ -43,7 +44,7 @@ export function jobService(queue:JobQueue,deps:Dependencies){
      decision=await deps.decide(input.evidence,config,executionSettings);
     }
     progress(85,'Saving candidate and analysis',decision);
-    const {candidate,analysis}=await deps.analyses.save({id:job.id,candidateId:input.candidateId,name:input.name,resumeFilename:draft.filename,resumePdfKey:draft.pdfKey,resumeDocumentId:draft.resumeId,parsedResume:draft.parsed,evidence:input.evidence,screening:decision.screening,config,latencyMs:decision.latencyMs});
+    const {candidate,analysis}=await deps.analyses.save({id:job.id,candidateId:input.candidateId,name:input.name,resumeFilename:draft.filename,resumePdfKey:draft.pdfKey,resumeDocumentId:draft.resumeId,parsedResume:draft.parsed,evidence:input.evidence,screening:decision.screening,config,executionConfiguration:execution,latencyMs:decision.latencyMs});
     result={candidate,analysis,parsedResume:draft.parsed,screening:decision.screening,metadata:{analysisId:analysis.id,analyzedAt:analysis.analyzedAt,deciderLatencyMs:decision.latencyMs}};
    }
    progress(95,'Finalizing job');queue.finish(job.id,job.owner,result);
@@ -61,11 +62,11 @@ export function jobService(queue:JobQueue,deps:Dependencies){
    if(queue.draftCount()+queue.pendingParses()>=settings.workflow.maxPendingDrafts)throw new AppError(429,'DRAFT_LIMIT','Too many pending drafts. Complete an analysis or wait for drafts to expire.');
    return queue.enqueue('parse',{pdf:pdf.toString('base64'),filename,settings},key?`parse:${key}`:undefined);
   },
-  analyze(input:AnalysisInput,settings:RuntimeSettings,config:ScreeningConfig){
+  analyze(input:AnalysisInput,settings:RuntimeSettings,config:ScreeningConfig,execution?:ExecutionConfiguration){
    const existing=queue.findByKey(`analyze:${input.token}`);if(existing)return existing;
    const draft=queue.draft<DurableDraft>(input.token);
    if(!draft)throw new AppError(410,'DRAFT_EXPIRED','This resume draft expired. Upload or reuse the PDF again.');
-   return queue.enqueue('analyze',{input,draft,settings,config},`analyze:${input.token}`);
+   return queue.enqueue('analyze',{input,draft,settings,config,execution},`analyze:${input.token}`);
   }
  };
 }

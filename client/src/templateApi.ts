@@ -1,0 +1,4 @@
+import type {ScreeningTemplate} from '../../shared/screeningConfiguration';
+export async function templateApi<T=ScreeningTemplate>(path='',method='GET',body?:unknown):Promise<T>{const response=await fetch(`/api/screening-templates${path}`,{method,headers:{'Content-Type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)})});const data=await response.json();if(!response.ok)throw new Error(data.error?.message||'Template operation failed.');return data;}
+export const updateConfirmation='Update this screening template? Future screenings using this template will use the updated configuration. Existing screening results will remain unchanged.';
+export const deleteConfirmation='Delete this screening template? Existing screenings and candidate evaluation results will not be affected.';

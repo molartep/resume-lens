@@ -53,7 +53,7 @@ it('runs queued upload and reviewed analysis across restart, with idempotent sav
  const dir=await mkdtemp(path.join(tmpdir(),'job-flow-'));const db=new PrismaClient({datasourceUrl:`file:${dir}/data.db`});
  const file=path.join(dir,'queue.sqlite');let queue=new JobQueue(file);const sql=new DatabaseSync(file);
  try{
-  for(const migration of ['20261004000000_init','20261004010000_resume_pdf','20261004020000_saved_resumes']){const text=await readFile(`prisma/migrations/${migration}/migration.sql`,'utf8');for(const statement of text.split(';').map(s=>s.trim()).filter(Boolean))await db.$executeRawUnsafe(statement);}
+  for(const migration of ['20261004000000_init','20261004010000_resume_pdf','20261004020000_saved_resumes','20261125000000_screening_templates']){const text=await readFile(`prisma/migrations/${migration}/migration.sql`,'utf8');for(const statement of text.split(';').map(s=>s.trim()).filter(Boolean))await db.$executeRawUnsafe(statement);}
   const deps:Dependencies={pdfs:resumeFileStore(path.join(dir,'resumes')),resumes:resumeRepository(db),candidates:candidateRepository(db),analyses:analysisRepository(db),parserConfigured:()=>true,health:async()=>({online:true}),parse:vi.fn(async()=>({text:'# Experience\nBuilt and shipped API services.',metadata:{provider:'test',jobId:'provider-job',pageCount:1}})),decide:vi.fn(async()=>({screening:{model:'test',answers:{}},latencyMs:1}))};
   let jobs=jobService(queue,deps);deps.jobs=jobs;let app=createApp(deps);
   const upload=()=>request(app).post('/api/resumes/parse').set('Idempotency-Key','upload-1').attach('resume',Buffer.from('%PDF-1.7\nsynthetic'),{filename:'test.pdf',contentType:'application/pdf'});

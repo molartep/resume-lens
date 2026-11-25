@@ -1,6 +1,7 @@
+import type {ExecutionConfiguration} from '../../shared/screeningConfiguration';
 import type { PrismaClient, Prisma } from '@prisma/client';
 import type { ParsedResume, Screening, ScreeningConfig } from '../../shared/types';
-export type SaveAnalysis={id?:string;candidateId?:string;name?:string;resumeFilename:string;resumePdfKey?:string;resumeDocumentId?:string;parsedResume:ParsedResume;evidence:string;screening:Screening;config:ScreeningConfig;latencyMs:number};
+export type SaveAnalysis={executionConfiguration?:ExecutionConfiguration;id?:string;candidateId?:string;name?:string;resumeFilename:string;resumePdfKey?:string;resumeDocumentId?:string;parsedResume:ParsedResume;evidence:string;screening:Screening;config:ScreeningConfig;latencyMs:number};
 const json=(v:unknown)=>JSON.parse(JSON.stringify(v)) as Prisma.InputJsonValue;
 export function analysisRepository(db:PrismaClient){return {
  find:(id:string)=>db.resumeAnalysis.findUnique({where:{id}}),
@@ -10,7 +11,7 @@ export function analysisRepository(db:PrismaClient){return {
   // An explicit candidate id creates history. Never merge people by filename or inferred identity.
   const data={resumeFilename:input.resumeFilename,...(input.name?{name:input.name}:{})};
   const candidate=input.candidateId?await tx.candidate.update({where:{id:input.candidateId},data}):await tx.candidate.create({data});
-  const analysis=await tx.resumeAnalysis.create({data:{id:input.id,candidateId:candidate.id,resumeFilename:input.resumeFilename,resumePdfKey:input.resumePdfKey,resumeDocumentId:input.resumeDocumentId,parsedResumeText:input.parsedResume.text,screeningResumeText:input.evidence,screeningResults:json(input.screening),screeningConfigSnapshot:json(input.config),deciderLatencyMs:input.latencyMs,parserMetadata:json(input.parsedResume.metadata)}});
+  const analysis=await tx.resumeAnalysis.create({data:{id:input.id,candidateId:candidate.id,resumeFilename:input.resumeFilename,resumePdfKey:input.resumePdfKey,resumeDocumentId:input.resumeDocumentId,parsedResumeText:input.parsedResume.text,screeningResumeText:input.evidence,screeningResults:json(input.screening),screeningConfigSnapshot:json(input.config),...(input.executionConfiguration?{executionConfigurationSnapshot:json(input.executionConfiguration)}:{}),deciderLatencyMs:input.latencyMs,parserMetadata:json(input.parsedResume.metadata)}});
   return {candidate,analysis};
  })
 };}

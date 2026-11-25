@@ -11,7 +11,7 @@ import {candidateRepository} from '../server/repositories/candidateRepository';
 import {analysisRepository} from '../server/repositories/analysisRepository';
 import {resumeRepository} from '../server/repositories/resumeRepository';
 import {resumeFileStore} from '../server/services/resumeFileService';
-const migrations=['20261004000000_init','20261004010000_resume_pdf','20261004020000_saved_resumes'];
+const migrations=['20261004000000_init','20261004010000_resume_pdf','20261004020000_saved_resumes','20261125000000_screening_templates'];
 async function migrate(db:PrismaClient,names=migrations){for(const name of names){const sql=await readFile(`prisma/migrations/${name}/migration.sql`,'utf8');for(const statement of sql.split(';').map(s=>s.trim()).filter(Boolean))await db.$executeRawUnsafe(statement);}}
 async function fixture(run:(ctx:{dir:string;db:PrismaClient;deps:Dependencies;app:ReturnType<typeof createApp>})=>Promise<void>){
  const dir=await mkdtemp(path.join(tmpdir(),'saved-resumes-'));const db=new PrismaClient({datasourceUrl:`file:${dir}/test.db`});

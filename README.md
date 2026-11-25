@@ -217,3 +217,42 @@ The separate [45-second promotional video](demo/promo/output/resume-lens-promo-4
 ## Brand identity
 
 The complete [brand manual](docs/brand/BRAND.md), [supplied brand kit](docs/brand/resumelens-brand-kit.zip), and original assets are preserved under `docs/brand/`. The platform and both videos use the R-Lens logo, ResumeLens wordmark, and shared semantic palette. See [implementation and verification](docs/brand/IMPLEMENTATION.md).
+
+## Screening Templates
+
+Open **Screening Templates** in the sidebar to create, inspect, search, edit, duplicate or delete reusable configurations. No resume or inference call is required. New templates start with the existing screening defaults. **General Candidate Screening**, **Software Engineer**, and **Data Engineer** are editable examples: customize their criteria to the specific role before using them.
+
+In **New Analysis**, select a **Screening template**, or keep **Custom configuration**. Expand **Edit screening configuration** to use the same dimensions, ordering, instructions, criteria and review-threshold editor used elsewhere in the app. The model fields also reuse the connection settings controls. Applying a template copies its configuration into the working state and leaves uploaded resumes and reviewed evidence intact. Local changes stay local. **Save as template** / **Save as new template** captures the current configuration, including edits that have not been saved as workspace defaults. **Save to template** explicitly updates the source after confirmation. A replacement prompt lets you save as a new template, discard edits, or cancel when changing templates. Editors warn before discarding unsaved changes.
+
+Templates include every existing reusable screening option: dimension IDs, labels, order, question types, text or structured instructions, NOUL/CHOICE/SCORE criteria, category labels, legacy experience-month mappings, manual-review metrics/operators/values/categories; model connection reference, provider, model ID, request timeout, output-token budget, temperature and API version; and the timezone used to resolve `{{CURRENT_DATE}}`. Provider distribution protocols and deterministic experience calculations remain unchanged. Parser options, storage limits, connection URLs, organization/project routing, credentials, resumes, candidate identity, results and job state remain outside templates. Provider-managed settings (including local model weights and context windows) remain globally managed.
+
+Templates are global to this installation, stored as validated JSON in SQLite through Prisma. Names are trimmed, limited to 120 characters and unique after Unicode normalization and case-insensitive normalization; descriptions allow up to 2,000 characters. All persisted changes advance the revision, including metadata edits, so revision checks also prevent stale metadata overwrites. An unchanged save leaves the revision intact. Stale updates return a conflict rather than overwriting another tab's changes; reload the latest template or save as a new template. A deleted or disabled model connection produces an actionable execution error; choose an available model in the working editor. Template editing itself does not require provider credentials or connectivity.
+
+Every newly submitted analysis stores a complete, secret-free `executionConfigurationSnapshot` alongside the existing `screeningConfigSnapshot`. The snapshot contains resolved date placeholders and, when applicable, the source template ID, name, revision, application time and modified-after-application status. Historical model results and thresholds use their saved configuration. Queued work persists the accepted configuration in the existing durable queue and retries keep that configuration, including across process restarts. Updating or deleting a template has no relation or cascading delete to candidates, results or queued work. Source provenance remains readable after deletion; it is never needed to resolve execution settings.
+
+### Upgrade an existing installation
+
+Stop the app, retain your normal database backup, then run:
+
+```sh
+npx prisma migrate deploy
+npx prisma generate
+npm run build
+npm start
+```
+
+The additive `20261125000000_screening_templates` migration adds `ScreeningTemplate`, `ApplicationInitialization` and a nullable `ResumeAnalysis.executionConfigurationSnapshot` column. Startup inserts starter templates and an initialization marker in one transaction. Subsequent starts never overwrite edits, recreate deleted starters or duplicate them. Both existing and new installations receive starters on their first startup after migration. Existing records and settings are preserved; older analyses have no fabricated model settings or provenance and retain their previous inspection and threshold behavior. Development installations can use the existing `npm run prisma:migrate` workflow instead.
+
+### API and compatibility
+
+- `GET /api/screening-configuration`: complete current defaults and active model parameters.
+- `GET /api/screening-templates` and `GET /api/screening-templates/:id`: library and full configuration.
+- `POST /api/screening-templates`: create with `name`, optional `description`, `configuration`, and `configurationSchemaVersion` (currently `1`).
+- `PATCH /api/screening-templates/:id`: complete replacement of metadata/configuration with `expectedRevision`.
+- `POST /api/screening-templates/:id/duplicate`: create an independent copy with a new `name` and optional `description`.
+- `DELETE /api/screening-templates/:id`: delete only the template.
+- `POST /api/resumes/analyze`: optionally accepts `configuration` and `templateProvenance`; existing clients omitting these continue to use server defaults.
+
+The shared validators reject unsupported schema versions and unknown configuration fields rather than silently dropping evaluation settings. A future schema revision will need an explicit migration. There is no template version-history browser, batch-screening API, candidate ranking or automated employment decision. The existing app processes individual analyses; clients submitting several analyses should pass the same copied configuration for each. Configuration reproducibility does not guarantee identical model output: providers, local weights, infrastructure defaults and credentials can change outside a template. Queued hosted requests still need their original connection's credentials to remain available.
+
+Run `npm test` for the existing regressions and template lifecycle, validation, startup, snapshot, queued-retry and restart coverage. These tests use temporary SQLite databases and mocked inference. Production type checking runs as part of `npm run build`; this repository does not define a separate lint command.

@@ -13,7 +13,7 @@ export function modelEntries(config:ScreeningConfig):[string,ModelDimension][]{r
 export function modelOnlyConfig(config:ScreeningConfig):Record<string,ModelDimension>{return Object.fromEntries(modelEntries(config));}
 export type Answer = {type:'experience';experience:import('./experience').Experience} | {type:'noul'; noul:number} | {type:'choice'; choice:string; probabilities:Record<string,number>; confidence:number} | {type:'score'; score:number; legend:Record<string,string>; probabilities:Record<string,number>; confidence:number};
 export type Screening = {experience?:import('./experience').Experience;model:string; answers:Record<string,Answer>; usage?:{input_tokens:number;output_tokens:number}; latency_ms?:number; [key:string]:unknown};
-export type Analysis = {id:string; candidateId:string; resumeDocumentId?:string|null; resumeFilename?:string|null; resumePdfKey?:string|null; parsedResumeText:string; screeningResumeText:string; screeningResults:Screening; screeningConfigSnapshot:ScreeningConfig; analyzedAt:string; deciderLatencyMs:number|null; parserMetadata:unknown};
+export type Analysis = {executionConfigurationSnapshot?:import('./screeningConfiguration').ExecutionConfiguration|null;id:string; candidateId:string; resumeDocumentId?:string|null; resumeFilename?:string|null; resumePdfKey?:string|null; parsedResumeText:string; screeningResumeText:string; screeningResults:Screening; screeningConfigSnapshot:ScreeningConfig; analyzedAt:string; deciderLatencyMs:number|null; parserMetadata:unknown};
 export type Candidate = {id:string;name:string|null;resumeFilename:string;createdAt:string;updatedAt:string;analyses?:Analysis[]};
 export type ParsedResume = {text:string;metadata:{jobId:string;pageCount:number;provider:string;settings?:unknown}};
 

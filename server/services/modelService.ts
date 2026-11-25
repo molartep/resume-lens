@@ -13,7 +13,7 @@ import {AppError} from './errors';
 export function modelService(repository:ModelRepository){
  async function profile(settings?:RuntimeSettings){return validateModelProfile(settings?.inference??await repository.active());}
  return {repository,
-  async snapshot(settings:RuntimeSettings){if(!Object.keys(modelOnlyConfig(settings.screeningConfig)).length)return {...settings};return {...settings,inference:await profile()};},
+  async snapshot(settings:RuntimeSettings){if(!Object.keys(modelOnlyConfig(settings.screeningConfig)).length)return {...settings};return {...settings,inference:await profile(settings)};},
   async health(settings?:RuntimeSettings){if(settings&&!Object.keys(modelOnlyConfig(settings.screeningConfig)).length)return {online:true,model:'Deterministic calculation',provider:'deterministic'};let p:ModelProfile|undefined;try{p=await profile(settings);if(!p.enabled)return {online:false,model:p.model,provider:p.provider};if(p.provider==='local')return {...await checkDeciderHealth(settings,p.baseUrl),provider:p.provider};await repository.key(p);return {online:true,model:p.model,provider:p.provider,status:'ready' as const};}catch{return {online:false,model:p?.model,provider:p?.provider};}},
   async decide(text:string,config:ScreeningConfig,settings:RuntimeSettings=defaultSettings()):Promise<{screening:Screening;latencyMs:number}>{
    const modelConfig=modelOnlyConfig(config);

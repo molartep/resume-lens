@@ -21,7 +21,7 @@ function mockAnswers(config:ScreeningConfig){return Object.fromEntries(Object.en
 it('completes upload -> reviewed analysis -> SQLite -> reopened history with mocked services',async()=>{
  const dir=await mkdtemp(path.join(tmpdir(),'resume-workflow-'));const db=new PrismaClient({datasourceUrl:`file:${dir}/test.db`});
  try{
-  for(const migration of ['20261004000000_init','20261004010000_resume_pdf','20261004020000_saved_resumes']){const sql=await readFile(`prisma/migrations/${migration}/migration.sql`,'utf8');for(const statement of sql.split(';').map(s=>s.trim()).filter(Boolean))await db.$executeRawUnsafe(statement);}
+  for(const migration of ['20261004000000_init','20261004010000_resume_pdf','20261004020000_saved_resumes','20261125000000_screening_templates']){const sql=await readFile(`prisma/migrations/${migration}/migration.sql`,'utf8');for(const statement of sql.split(';').map(s=>s.trim()).filter(Boolean))await db.$executeRawUnsafe(statement);}
   const pdfs=resumeFileStore(path.join(dir,'resumes'));
   const dependencies:Dependencies={pdfs,candidates:candidateRepository(db),analyses:analysisRepository(db),parserConfigured:()=>true,health:async()=>({online:true}),parse:async()=>({text:'# Experience\nBuilt and shipped API services.',metadata:{provider:'mock',jobId:'mock',pageCount:1}}),decide:async(_evidence,config)=>({screening:{model:'mock',answers:mockAnswers(config)},latencyMs:10})};
   const app=createApp(dependencies);

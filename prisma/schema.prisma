@@ -26,6 +26,7 @@ model ResumeAnalysis {
   parsedResumeText String
   screeningResumeText String
   screeningResults Json
+  executionConfigurationSnapshot Json?
   screeningConfigSnapshot Json
   analyzedAt DateTime @default(now())
   deciderLatencyMs Float?
@@ -42,4 +43,20 @@ model ResumeDocument {
   parserMetadata Json?
   createdAt DateTime @default(now())
   analyses ResumeAnalysis[]
+}
+
+model ScreeningTemplate {
+  id String @id @default(uuid())
+  name String
+  nameKey String @unique
+  description String @default("")
+  configuration Json
+  configurationSchemaVersion Int
+  revision Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model ApplicationInitialization {
+  key String @id
+  createdAt DateTime @default(now())
 }
