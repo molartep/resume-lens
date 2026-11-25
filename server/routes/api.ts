@@ -119,6 +119,9 @@ export function apiRouter(deps:Dependencies){
   if(typeof req.body?.name!=='string'||!req.body.name.trim()||req.body.name.trim().length>120)throw new AppError(400,'DISPLAY_NAME_REQUIRED','Enter a candidate display name between 1 and 120 characters.');
   const body=analysisBody.safeParse(req.body);if(!body.success)throw new AppError(400,'REVIEW_REQUIRED','Review professional evidence (20–30,000 characters) and confirm that personal and sensitive information is removed.');
   if(deps.jobs){
+   // Replayed submissions resolve the already accepted snapshot even if its template changed or was deleted.
+   const existing=deps.jobs.queue.findByKey(`analyze:${body.data.token}`);
+   if(existing){res.status(202).location(`/api/jobs/${existing.id}`).json(existing);return;}
    try{assertProfessionalEvidence(body.data.evidence);}catch(error){throw new AppError(400,'PERSONAL_INFORMATION',(error as Error).message);}
    if(body.data.candidateId&&!await deps.candidates.find(body.data.candidateId))throw new AppError(404,'NOT_FOUND','Candidate not found.');
    const savedSettings=await store.get();

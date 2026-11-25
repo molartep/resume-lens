@@ -156,3 +156,23 @@ input:not([type=file]):not([type=checkbox]),textarea,select{border-color:var(--r
 fieldset.template-workspace {border:0;padding:0;margin:0 0 24px}
 .template-workspace>.settings-actions {flex-wrap:wrap}
 .template-workspace .dimension-tools button {font-size:12px;padding:9px 12px;min-height:36px}
+
+/* Template scope and analysis model controls follow the brand action hierarchy. */
+.page-title>div {min-width:0;flex:1}
+.page-title p {max-width:none;width:100%;line-height:1.7}
+.template-title-button {background:transparent;color:var(--rl-brand);font:inherit;font-weight:600;text-align:left;padding:0;white-space:normal;overflow-wrap:anywhere;min-height:44px}
+.template-title-button:hover {text-decoration:underline;text-underline-offset:4px}
+.template-library-actions,.template-editor-actions {display:flex;flex-wrap:wrap;gap:12px;margin-top:24px;align-items:center}
+.template-library-actions .secondary,.template-editor-actions .secondary,.template-editor-actions .primary,.template-delete-button {min-height:44px;padding:12px 18px;font-size:13px;font-weight:600;border-radius:var(--rl-radius-control)}
+.template-delete-button {background:transparent;color:var(--rl-warning);border:1px solid var(--rl-border)}
+.template-delete-button:hover {background:var(--rl-warning-surface);border-color:var(--rl-warning)}
+.template-editor-actions .template-delete-button {margin-right:auto;order:-1}
+.evaluation-model-container {border:0;padding:0;margin:0 0 24px;min-width:0}
+.evaluation-model .card-heading {align-items:center;margin-bottom:0}
+.evaluation-model .model-preview {margin:8px 0 0;font-size:14px;line-height:1.6;color:var(--rl-text-muted);overflow-wrap:anywhere}
+.icon-button {display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;padding:10px}
+.model-parameters {margin-top:24px;padding-top:8px;border-top:1px solid var(--rl-border)}
+.evaluation-model .model-settings-note {max-width:none;width:100%;font-size:12px;line-height:1.6;margin:16px 0 0;padding-top:16px;color:var(--rl-text-muted)}
+.model-settings-note a {color:var(--rl-brand);text-decoration:underline;text-underline-offset:3px}
+.template-workspace .card-heading .secondary {min-height:44px;padding:11px 18px}
+@media(max-width:650px){.template-editor-actions{justify-content:flex-start}.template-editor-actions .template-delete-button{margin-right:0;flex-basis:100%}.template-library-actions button{flex:1 1 auto}.evaluation-model .card-heading{align-items:flex-start}}

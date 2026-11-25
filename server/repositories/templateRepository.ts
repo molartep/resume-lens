@@ -1,7 +1,7 @@
 import {Prisma,type PrismaClient} from '@prisma/client';
 import {z} from 'zod';
 import {AppError} from '../services/errors';
-import {starterTemplates} from '../services/starterTemplates';
+import {starterTemplates,businessExampleNames} from '../services/starterTemplates';
 import {configurationSchemaVersion,normalized,validateScreeningConfiguration,type ScreeningTemplate} from '../../shared/screeningConfiguration';
 const metadata=z.object({name:z.string().trim().min(1,'Enter a template name.').max(120),description:z.string().trim().max(2000).default(''),configuration:z.unknown(),configurationSchemaVersion:z.number().int()}).strict();
 function input(value:unknown){const p=metadata.safeParse(value);if(!p.success)throw new AppError(400,'INVALID_TEMPLATE',p.error.issues.map(i=>`${i.path.join('.')}: ${i.message}`).join('; '));return {...p.data,nameKey:p.data.name.normalize('NFKC').toLowerCase(),configuration:validateScreeningConfiguration(p.data.configuration,p.data.configurationSchemaVersion)};}
@@ -14,9 +14,19 @@ export function templateRepository(db:PrismaClient){
   async initialize(){
    // The marker and starter rows commit together. Deletion never resets the marker.
    await db.$transaction(async tx=>{
-    const key='screening-templates-v1';if(await tx.applicationInitialization.findUnique({where:{key}}))return;
-    for(const starter of starterTemplates()){const data=input({...starter,configurationSchemaVersion});if(!await tx.screeningTemplate.findUnique({where:{nameKey:data.nameKey}}))await tx.screeningTemplate.create({data:{...data,configuration:json(data.configuration)}});}
-    await tx.applicationInitialization.create({data:{key}});
+    const key='screening-templates-v1';
+    async function insertMissing(starters:ReturnType<typeof starterTemplates>){
+     for(const starter of starters){const data=input({...starter,configurationSchemaVersion});if(!await tx.screeningTemplate.findUnique({where:{nameKey:data.nameKey}}))await tx.screeningTemplate.create({data:{...data,configuration:json(data.configuration)}});}
+    }
+    if(!await tx.applicationInitialization.findUnique({where:{key}})){
+     await insertMissing(starterTemplates());
+     await tx.applicationInitialization.create({data:{key}});
+    }
+    const businessKey='screening-template-business-examples-v1';
+    if(!await tx.applicationInitialization.findUnique({where:{key:businessKey}})){
+     await insertMissing(starterTemplates().filter(t=>(businessExampleNames as readonly string[]).includes(t.name)));
+     await tx.applicationInitialization.create({data:{key:businessKey}});
+    }
    });
   },
   get,

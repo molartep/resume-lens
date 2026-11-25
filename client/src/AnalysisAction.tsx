@@ -8,8 +8,8 @@ export function analysisBlocker({name,evidence,reviewed,busy}:{name:string;evide
  return null;
 }
 
-export function AnalysisAction({name,evidence,reviewed,busy,onAnalyze,onNameRequired}:{name:string;evidence:string;reviewed:boolean;busy:string;onAnalyze:()=>void;onNameRequired:()=>void}){
- const blocker=analysisBlocker({name,evidence,reviewed,busy});
+export function AnalysisAction({name,evidence,reviewed,busy,onAnalyze,onNameRequired,configurationBlocker}:{configurationBlocker?:string;name:string;evidence:string;reviewed:boolean;busy:string;onAnalyze:()=>void;onNameRequired:()=>void}){
+ const blocker=configurationBlocker||analysisBlocker({name,evidence,reviewed,busy});
  return <div className="analysis-action">
   <button type="button" className="primary" onClick={onAnalyze} disabled={!!blocker} aria-describedby="analysis-readiness" aria-busy={!!busy}>{busy?'Please wait…':'Analyze Candidate →'}</button>
   <div id="analysis-readiness" className={`analysis-readiness ${blocker?'blocked':'ready'}`} role="status">
